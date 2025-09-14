@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, RequestMethod } from '@nestjs/common';
 import { AppModule } from './app.module';
 import 'dotenv/config';
 
@@ -29,8 +29,10 @@ async function bootstrap() {
     }),
   );
 
-  // API prefix
-  app.setGlobalPrefix(process.env.API_PREFIX || 'api/v1');
+  // API prefix - exclude health and root endpoints
+  app.setGlobalPrefix(process.env.API_PREFIX || 'api/v1', {
+    exclude: [{ path: '', method: RequestMethod.GET }, { path: 'health', method: RequestMethod.GET }]
+  });
 
   const port = process.env.PORT || 3000;
   await app.listen(port);

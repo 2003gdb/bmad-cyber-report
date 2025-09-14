@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MulterModule } from '@nestjs/platform-express';
-import { AppController } from './app.controller';
+import { AppController, ApiController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './shared/database/database.module';
 import { AuthModule } from './auth/auth.module';
@@ -27,7 +27,7 @@ import { AdminModule } from './admin/admin.module';
       },
     }),
   ],
-  controllers: [AppController],
+  controllers: [AppController, ApiController],
   providers: [AppService],
 })
 export class AppModule {}

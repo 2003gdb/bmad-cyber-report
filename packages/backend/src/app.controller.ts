@@ -15,3 +15,13 @@ export class AppController {
     return this.appService.getHealth();
   }
 }
+
+@Controller()
+export class ApiController {
+  constructor(private readonly appService: AppService) {}
+
+  @Get()
+  getApiRoot(): string {
+    return this.appService.getRoot();
+  }
+}
