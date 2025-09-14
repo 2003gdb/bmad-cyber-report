@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe, RequestMethod } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from './../src/app.module';
 
@@ -12,6 +12,30 @@ describe('AppController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+
+    // Apply the same configuration as main.ts
+    app.enableCors({
+      origin: true, // Allow all origins in test
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+      credentials: true,
+    });
+
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        transformOptions: {
+          enableImplicitConversion: true,
+        },
+      }),
+    );
+
+    // API prefix - exclude health and root endpoints
+    app.setGlobalPrefix('api/v1', {
+      exclude: [{ path: '', method: RequestMethod.GET }, { path: 'health', method: RequestMethod.GET }]
+    });
+
     await app.init();
   });
 
