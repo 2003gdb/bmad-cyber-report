@@ -24,7 +24,7 @@ describe('AppController (e2e)', () => {
       return request(app.getHttpServer())
         .get('/')
         .expect(200)
-        .expect('SafeTrade API is running!');
+        .expect('SafeTrade API - Sistema de Reportes de Ciberseguridad');
     });
   });
 
@@ -33,21 +33,21 @@ describe('AppController (e2e)', () => {
       return request(app.getHttpServer())
         .get('/health')
         .expect(200)
-        .expect('SafeTrade API is running!');
+        .expect((res) => {
+          expect(res.body).toHaveProperty('status', 'ok');
+          expect(res.body).toHaveProperty('timestamp');
+          expect(res.body).toHaveProperty('service', 'SafeTrade Backend API');
+          expect(res.body).toHaveProperty('version', '1.0.0');
+        });
     });
   });
 
   describe('/api/v1 (GET)', () => {
-    it('should return API information', () => {
+    it('should return API root with global prefix', () => {
       return request(app.getHttpServer())
         .get('/api/v1')
         .expect(200)
-        .expect((res) => {
-          expect(res.body).toHaveProperty('name', 'SafeTrade API');
-          expect(res.body).toHaveProperty('version');
-          expect(res.body).toHaveProperty('environment');
-          expect(res.body).toHaveProperty('timestamp');
-        });
+        .expect('SafeTrade API - Sistema de Reportes de Ciberseguridad');
     });
   });
 
@@ -55,18 +55,18 @@ describe('AppController (e2e)', () => {
     it('should have reportes endpoint available', () => {
       return request(app.getHttpServer())
         .get('/api/v1/reportes')
+        .expect(200)
         .expect((res) => {
-          // Should not return 404 - endpoint should exist
-          expect(res.status).not.toBe(404);
+          expect(res.body).toHaveProperty('message');
         });
     });
 
     it('should have tendencias-comunidad endpoint available', () => {
       return request(app.getHttpServer())
         .get('/api/v1/tendencias-comunidad')
+        .expect(200)
         .expect((res) => {
-          // Should not return 404 - endpoint should exist
-          expect(res.status).not.toBe(404);
+          expect(res.body).toHaveProperty('message');
         });
     });
   });
