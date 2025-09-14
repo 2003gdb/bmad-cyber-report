@@ -1,4 +1,8 @@
-# SafeTrade - Sistema de Reportes de Ciberseguridad
+# bmad-cyber-report
+
+A repository where I'm doing a school project with the BMAD methodology to build with AI and proper context and documentation.
+
+## SafeTrade - Sistema de Reportes de Ciberseguridad
 
 SafeTrade es una plataforma integral para reportes de incidentes de ciberseguridad que permite a usuarios reportar amenazas de forma segura, tanto identificados como anónimos, proporcionando análisis comunitarios y herramientas administrativas.
 
@@ -10,7 +14,7 @@ Este proyecto utiliza una arquitectura de monorepo con las siguientes tecnologí
 
 - **`packages/backend/`** - API NestJS (Puerto 3000)
   - Framework: NestJS 10.2.0
-  - Base de datos: SQL Server Express 2019
+  - Base de datos: MySQL 8.0+
   - Autenticación: JWT + bcrypt con salt único por usuario
   - ORM: Sequelize
 
@@ -135,4 +139,4 @@ MIT License - Ver archivo LICENSE para detalles.
 
 ## 👥 Equipo
 
-Desarrollado por el equipo SafeTrade para el curso de Desarrollo de Aplicaciones Móviles.
+Desarrollado por Carlos A Galvez para el curso de Desarrollo de Aplicaciones Móviles usando la metodología BMAD con IA.
