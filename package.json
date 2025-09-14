@@ -1,0 +1,40 @@
+{
+  "name": "safetrade-monorepo",
+  "version": "1.0.0",
+  "description": "SafeTrade - Cybersecurity Reporting Platform",
+  "private": true,
+  "workspaces": [
+    "packages/backend",
+    "packages/admin-portal"
+  ],
+  "scripts": {
+    "dev": "./scripts/dev.sh",
+    "build": "./scripts/build.sh",
+    "test": "./scripts/test.sh",
+    "setup": "./scripts/setup.sh",
+    "backend:dev": "npm run dev --workspace=packages/backend",
+    "backend:build": "npm run build --workspace=packages/backend",
+    "backend:test": "npm run test --workspace=packages/backend",
+    "admin:dev": "npm run dev --workspace=packages/admin-portal",
+    "admin:build": "npm run build --workspace=packages/admin-portal",
+    "admin:test": "npm run test --workspace=packages/admin-portal"
+  },
+  "keywords": [
+    "cybersecurity",
+    "reporting",
+    "nestjs",
+    "swiftui",
+    "nextjs"
+  ],
+  "author": "SafeTrade Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.17.0",
+    "npm": ">=9.0.0"
+  },
+  "devDependencies": {
+    "lerna": "^7.1.0",
+    "@types/node": "^20.4.0",
+    "typescript": "^5.2.0"
+  }
+}

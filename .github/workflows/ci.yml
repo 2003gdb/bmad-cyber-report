@@ -1,0 +1,143 @@
+name: SafeTrade CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2019-latest
+        env:
+          SA_PASSWORD: TempPassword123!
+          ACCEPT_EULA: Y
+        ports:
+          - 1433:1433
+        options: --health-cmd="/opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P TempPassword123! -Q 'SELECT 1'" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.17.0'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Install backend dependencies
+      run: |
+        cd packages/backend
+        npm ci
+    
+    - name: Setup test database
+      run: |
+        /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P TempPassword123! -Q "CREATE DATABASE safetrade_test;"
+    
+    - name: Create backend test env
+      run: |
+        cd packages/backend
+        cat > .env << EOF
+        NODE_ENV=test
+        DB_HOST=localhost
+        DB_PORT=1433
+        DB_NAME=safetrade_test
+        DB_USER=SA
+        DB_PASSWORD=TempPassword123!
+        JWT_SECRET=test_jwt_secret_key_12345
+        JWT_REFRESH_SECRET=test_refresh_secret_key_12345
+        EOF
+    
+    - name: Run backend linting
+      run: |
+        cd packages/backend
+        npm run lint
+    
+    - name: Run backend tests
+      run: |
+        cd packages/backend
+        npm run test
+    
+    - name: Run backend e2e tests
+      run: |
+        cd packages/backend
+        npm run test:e2e
+
+  test-admin-portal:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.17.0'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Install admin portal dependencies
+      run: |
+        cd packages/admin-portal
+        npm ci
+    
+    - name: Create admin portal test env
+      run: |
+        cd packages/admin-portal
+        cat > .env.local << EOF
+        NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+        NODE_ENV=test
+        JWT_SECRET=test_jwt_secret_key_12345
+        EOF
+    
+    - name: Run admin portal linting
+      run: |
+        cd packages/admin-portal
+        npm run lint
+    
+    - name: Run admin portal type checking
+      run: |
+        cd packages/admin-portal
+        npm run type-check
+    
+    - name: Build admin portal
+      run: |
+        cd packages/admin-portal
+        npm run build
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-admin-portal]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.17.0'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build all packages
+      run: npm run build
+    
+    - name: Archive build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-artifacts
+        path: |
+          packages/backend/dist/
+          packages/admin-portal/.next/
