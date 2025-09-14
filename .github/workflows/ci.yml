@@ -9,16 +9,16 @@ on:
 jobs:
   test-backend:
     runs-on: ubuntu-latest
-    
+
     services:
-      sqlserver:
-        image: mcr.microsoft.com/mssql/server:2019-latest
+      mysql:
+        image: mysql:8.0
         env:
-          SA_PASSWORD: TempPassword123!
-          ACCEPT_EULA: Y
+          MYSQL_ROOT_PASSWORD: TempPassword123!
+          MYSQL_DATABASE: safetrade_test
         ports:
-          - 1433:1433
-        options: --health-cmd="/opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P TempPassword123! -Q 'SELECT 1'" --health-interval=10s --health-timeout=5s --health-retries=3
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
     - uses: actions/checkout@v3
@@ -37,19 +37,23 @@ jobs:
         cd packages/backend
         npm ci
     
-    - name: Setup test database
+    - name: Wait for MySQL to be ready
       run: |
-        /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P TempPassword123! -Q "CREATE DATABASE safetrade_test;"
-    
+        until docker exec $(docker ps -q --filter ancestor=mysql:8.0) mysqladmin ping --silent; do
+          echo 'Waiting for MySQL to be available...'
+          sleep 1
+        done
+        echo 'MySQL is available'
+
     - name: Create backend test env
       run: |
         cd packages/backend
         cat > .env << EOF
         NODE_ENV=test
         DB_HOST=localhost
-        DB_PORT=1433
+        DB_PORT=3306
         DB_NAME=safetrade_test
-        DB_USER=SA
+        DB_USER=root
         DB_PASSWORD=TempPassword123!
         JWT_SECRET=test_jwt_secret_key_12345
         JWT_REFRESH_SECRET=test_refresh_secret_key_12345
