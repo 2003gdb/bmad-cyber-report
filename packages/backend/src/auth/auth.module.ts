@@ -1,27 +1,16 @@
-import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
-import { PassportModule } from '@nestjs/passport';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+/* eslint-disable prettier/prettier */
+
+import { Module, forwardRef } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { JwtStrategy } from './strategies/jwt.strategy';
+import { TokenService } from './token.service';
+import { AdminRepository } from './admin.repository';
+import { UsersModule } from 'src/users/users.module';
 
 @Module({
-  imports: [
-    PassportModule,
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get('JWT_SECRET'),
-        signOptions: {
-          expiresIn: configService.get('JWT_EXPIRES_IN') || '1h',
-        },
-      }),
-      inject: [ConfigService],
-    }),
-  ],
+  imports: [forwardRef(() => UsersModule)], // Use forwardRef to avoid circular dependency
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
+  providers: [AuthService, TokenService, AdminRepository],
+  exports: [AuthService, TokenService], // Export for other modules
 })
 export class AuthModule {}

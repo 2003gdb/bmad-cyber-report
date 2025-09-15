@@ -1,0 +1,189 @@
+/* eslint-disable prettier/prettier */
+
+import { Controller, Get, Param, Query, UseGuards, Req } from "@nestjs/common";
+import { ComunidadService } from "./comunidad.service";
+import { AnonymousAuthGuard } from "src/common/guards/anonymous-auth.guard";
+import type { AuthenticatedRequest } from "src/common/interfaces/authenticated-request";
+import { ApiResponse, ApiTags, ApiQuery } from "@nestjs/swagger";
+
+@ApiTags('Comunidad e Inteligencia de Amenazas')
+@Controller('comunidad')
+export class ComunidadController {
+    constructor(private readonly comunidadService: ComunidadService) {}
+
+    @Get('tendencias')
+    @UseGuards(AnonymousAuthGuard) // Allow both anonymous and authenticated access
+    @ApiQuery({ name: 'period', enum: ['7days', '30days', '90days'], required: false })
+    @ApiResponse({ status: 200, description: 'Tendencias comunitarias obtenidas exitosamente' })
+    async getTendencias(
+        @Query('period') period: '7days' | '30days' | '90days' = '30days',
+        @Req() req: AuthenticatedRequest
+    ) {
+        try {
+            const tendencias = await this.comunidadService.getTendencias(period);
+
+            return {
+                success: true,
+                message: `Tendencias comunitarias de los últimos ${period === '7days' ? '7 días' : period === '30days' ? '30 días' : '90 días'}`,
+                data: tendencias,
+                user_context: {
+                    access_type: req.user.userId === "anonymous" ? "anónimo" : "registrado",
+                    viewing_period: period
+                }
+            };
+
+        } catch (error) {
+            return {
+                success: false,
+                message: "Error al obtener tendencias comunitarias",
+                error: process.env.NODE_ENV === 'development' ? error : undefined
+            };
+        }
+    }
+
+    @Get('recomendaciones/:reporteId')
+    @UseGuards(AnonymousAuthGuard) // Allow access for both anonymous and authenticated users
+    @ApiResponse({ status: 200, description: 'Recomendaciones personalizadas obtenidas exitosamente' })
+    @ApiResponse({ status: 404, description: 'Reporte no encontrado' })
+    async getRecomendaciones(
+        @Param('reporteId') reporteId: string,
+        @Req() req: AuthenticatedRequest
+    ) {
+        try {
+            const recomendaciones = await this.comunidadService.getRecomendaciones(parseInt(reporteId));
+
+            if ('error' in recomendaciones) {
+                return {
+                    success: false,
+                    message: recomendaciones.error
+                };
+            }
+
+            return {
+                success: true,
+                message: "Recomendaciones generadas exitosamente",
+                data: recomendaciones,
+                context: {
+                    user_type: req.user.userId === "anonymous" ? "anónimo" : "registrado",
+                    generated_at: new Date().toISOString()
+                }
+            };
+
+        } catch (error) {
+            return {
+                success: false,
+                message: "Error al generar recomendaciones",
+                error: process.env.NODE_ENV === 'development' ? error : undefined
+            };
+        }
+    }
+
+    @Get('analytics')
+    @UseGuards(AnonymousAuthGuard) // Community analytics available to all
+    @ApiResponse({ status: 200, description: 'Analytics comunitarios obtenidos exitosamente' })
+    async getAnalytics(@Req() req: AuthenticatedRequest) {
+        try {
+            const analytics = await this.comunidadService.getAnalytics();
+
+            return {
+                success: true,
+                message: "Analytics comunitarios obtenidos exitosamente",
+                data: analytics,
+                metadata: {
+                    generated_at: new Date().toISOString(),
+                    user_access: req.user.userId === "anonymous" ? "público" : "registrado"
+                }
+            };
+
+        } catch (error) {
+            return {
+                success: false,
+                message: "Error al obtener analytics comunitarios",
+                error: process.env.NODE_ENV === 'development' ? error : undefined
+            };
+        }
+    }
+
+    @Get('alerta')
+    @UseGuards(AnonymousAuthGuard)
+    @ApiResponse({ status: 200, description: 'Estado de alerta comunitario obtenido exitosamente' })
+    async getAlertaComunitaria(@Req() req: AuthenticatedRequest) {
+        try {
+            const tendencias = await this.comunidadService.getTendencias('7days');
+            const analytics = await this.comunidadService.getAnalytics();
+
+            // Generate community alert based on recent trends
+            const alertLevel = this.determineAlertLevel(tendencias, analytics);
+            const alertMessage = this.generateAlertMessage(alertLevel, tendencias);
+
+            return {
+                success: true,
+                alerta: {
+                    nivel: alertLevel,
+                    mensaje: alertMessage,
+                    recomendaciones_generales: this.getGeneralRecommendations(alertLevel),
+                    ultima_actualizacion: new Date().toISOString()
+                },
+                stats: {
+                    reportes_recientes: tendencias.community_stats.total_reports,
+                    amenaza_principal: tendencias.summary.main_threat
+                }
+            };
+
+        } catch (error) {
+            return {
+                success: false,
+                message: "Error al obtener alerta comunitaria",
+                error: process.env.NODE_ENV === 'development' ? error : undefined
+            };
+        }
+    }
+
+    private determineAlertLevel(tendencias: any, analytics: any): 'verde' | 'amarillo' | 'rojo' {
+        const highImpactPercentage = (analytics.community_overview.highest_impact_count / analytics.community_overview.total_reports) * 100;
+        const topAttackPercentage = tendencias.attack_trends[0]?.percentage || 0;
+
+        if (highImpactPercentage > 40 || topAttackPercentage > 60) {
+            return 'rojo';
+        } else if (highImpactPercentage > 20 || topAttackPercentage > 40) {
+            return 'amarillo';
+        }
+        return 'verde';
+    }
+
+    private generateAlertMessage(level: string, tendencias: any): string {
+        switch (level) {
+            case 'rojo':
+                return `🚨 ALERTA ALTA: Se ha detectado un incremento significativo en ataques cibernéticos. ${tendencias.summary.main_threat} es la amenaza predominante. Extrema precaución.`;
+            case 'amarillo':
+                return `⚠️ PRECAUCIÓN: Actividad cibernética elevada detectada. ${tendencias.summary.main_threat} requiere atención. Mantente alerta.`;
+            default:
+                return `✅ ESTADO NORMAL: Actividad cibernética dentro de parámetros normales. Continúa con buenas prácticas de seguridad.`;
+        }
+    }
+
+    private getGeneralRecommendations(level: string): string[] {
+        const recommendations = {
+            'rojo': [
+                'Evita hacer clic en enlaces sospechosos',
+                'Verifica todas las comunicaciones antes de actuar',
+                'Mantén actualizados todos tus sistemas',
+                'Considera usar autenticación de dos factores',
+                'Reporta cualquier actividad sospechosa inmediatamente'
+            ],
+            'amarillo': [
+                'Mantente alerta ante comunicaciones inusuales',
+                'Verifica la autenticidad de mensajes importantes',
+                'Revisa regularmente la configuración de privacidad',
+                'Reporta incidentes para ayudar a la comunidad'
+            ],
+            'verde': [
+                'Continúa con buenas prácticas de ciberseguridad',
+                'Mantén actualizados tus sistemas',
+                'Participa en la comunidad reportando incidentes',
+                'Comparte conocimientos de seguridad con otros'
+            ]
+        };
+        return recommendations[level] || recommendations['verde'];
+    }
+}

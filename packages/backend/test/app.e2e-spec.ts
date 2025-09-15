@@ -31,10 +31,7 @@ describe('AppController (e2e)', () => {
       }),
     );
 
-    // API prefix - exclude health and root endpoints
-    app.setGlobalPrefix('api/v1', {
-      exclude: [{ path: '', method: RequestMethod.GET }, { path: 'health', method: RequestMethod.GET }]
-    });
+    // No global prefix - routes at root level
 
     await app.init();
   });
@@ -66,28 +63,19 @@ describe('AppController (e2e)', () => {
     });
   });
 
-  describe('/api/v1 (GET)', () => {
-    it('should return API root with global prefix', () => {
-      return request(app.getHttpServer())
-        .get('/api/v1')
-        .expect(200)
-        .expect('SafeTrade API - Sistema de Reportes de Ciberseguridad');
-    });
-  });
-
   describe('Spanish Endpoints', () => {
     it('should have reportes endpoint available', () => {
       return request(app.getHttpServer())
-        .get('/api/v1/reportes')
+        .get('/reportes')
         .expect(200)
         .expect((res) => {
           expect(res.body).toHaveProperty('message');
         });
     });
 
-    it('should have tendencias-comunidad endpoint available', () => {
+    it('should have comunidad/tendencias endpoint available', () => {
       return request(app.getHttpServer())
-        .get('/api/v1/tendencias-comunidad')
+        .get('/comunidad/tendencias')
         .expect(200)
         .expect((res) => {
           expect(res.body).toHaveProperty('message');

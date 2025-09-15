@@ -1,25 +1,157 @@
+/* eslint-disable prettier/prettier */
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
+import { UsersService } from '../users/users.service';
+import { TokenService } from './token.service';
+import { AdminRepository } from './admin.repository';
+import { User } from '../users/users.repository';
 
 describe('AuthService', () => {
-  let service: AuthService;
+    let service: AuthService;
+    let usersService: UsersService;
+    let tokenService: TokenService;
+    let adminRepository: AdminRepository;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthService],
-    }).compile();
+    const mockUser: User = {
+        id: 1,
+        email: 'test@example.com',
+        name: 'Test User',
+        password_hash: 'hashed_password',
+        salt: 'unique_salt',
+        last_login: null,
+        created_at: new Date(),
+        updated_at: new Date()
+    };
 
-    service = module.get<AuthService>(AuthService);
-  });
+    const mockAdmin = {
+        id: 1,
+        email: 'admin@example.com',
+        password_hash: 'hashed_admin_password',
+        salt: 'admin_salt',
+        last_login: null,
+        created_at: new Date()
+    };
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
+    beforeEach(async () => {
+        const module: TestingModule = await Test.createTestingModule({
+            providers: [
+                AuthService,
+                {
+                    provide: UsersService,
+                    useValue: {
+                        validateUser: jest.fn(),
+                        updateLastLogin: jest.fn(),
+                        findById: jest.fn(),
+                    },
+                },
+                {
+                    provide: TokenService,
+                    useValue: {
+                        generateAccessToken: jest.fn(),
+                        generateRefreshToken: jest.fn(),
+                        generateAdminToken: jest.fn(),
+                        verifyRefreshToken: jest.fn(),
+                    },
+                },
+                {
+                    provide: AdminRepository,
+                    useValue: {
+                        validateAdmin: jest.fn(),
+                        updateLastLogin: jest.fn(),
+                        findById: jest.fn(),
+                    },
+                },
+            ],
+        }).compile();
 
-  // TODO: Add more specific auth tests when service methods are implemented
-  describe('service initialization', () => {
-    it('should create service instance successfully', () => {
-      expect(service).toBeInstanceOf(AuthService);
+        service = module.get<AuthService>(AuthService);
+        usersService = module.get<UsersService>(UsersService);
+        tokenService = module.get<TokenService>(TokenService);
+        adminRepository = module.get<AdminRepository>(AdminRepository);
     });
-  });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    it('should be defined', () => {
+        expect(service).toBeDefined();
+    });
+
+    describe('loginUser', () => {
+        it('should login user with valid credentials', async () => {
+            const email = 'test@example.com';
+            const password = 'password123';
+            const mockAccessToken = 'mock.access.token';
+            const mockRefreshToken = 'mock.refresh.token';
+
+            jest.spyOn(usersService, 'validateUser').mockResolvedValue(mockUser);
+            jest.spyOn(tokenService, 'generateAccessToken').mockResolvedValue(mockAccessToken);
+            jest.spyOn(tokenService, 'generateRefreshToken').mockResolvedValue(mockRefreshToken);
+            jest.spyOn(usersService, 'updateLastLogin').mockResolvedValue(undefined);
+
+            const result = await service.loginUser(email, password);
+
+            expect(usersService.validateUser).toHaveBeenCalledWith(email, password);
+            expect(tokenService.generateAccessToken).toHaveBeenCalledWith({
+                id: mockUser.id,
+                email: mockUser.email,
+                name: mockUser.name
+            });
+            expect(tokenService.generateRefreshToken).toHaveBeenCalled();
+            expect(usersService.updateLastLogin).toHaveBeenCalledWith(mockUser.id);
+            expect(result).toEqual({
+                access_token: mockAccessToken,
+                refresh_token: mockRefreshToken,
+                user: {
+                    id: mockUser.id,
+                    email: mockUser.email,
+                    name: mockUser.name
+                }
+            });
+        });
+
+        it('should return error for invalid credentials', async () => {
+            const email = 'test@example.com';
+            const password = 'wrongpassword';
+
+            jest.spyOn(usersService, 'validateUser').mockResolvedValue(null);
+
+            const result = await service.loginUser(email, password);
+
+            expect(usersService.validateUser).toHaveBeenCalledWith(email, password);
+            expect(tokenService.generateAccessToken).not.toHaveBeenCalled();
+            expect(usersService.updateLastLogin).not.toHaveBeenCalled();
+            expect(result).toEqual({ error: "Credenciales inválidas" });
+        });
+    });
+
+    describe('refresh', () => {
+        it('should refresh access token for valid user refresh token', async () => {
+            const refreshToken = 'valid.refresh.token';
+            const mockPayload = { sub: '1', type: 'refresh' as const };
+            const mockNewAccessToken = 'new.access.token';
+
+            jest.spyOn(tokenService, 'verifyRefreshToken').mockResolvedValue(mockPayload);
+            jest.spyOn(usersService, 'findById').mockResolvedValue(mockUser);
+            jest.spyOn(tokenService, 'generateAccessToken').mockResolvedValue(mockNewAccessToken);
+
+            const result = await service.refresh(refreshToken);
+
+            expect(tokenService.verifyRefreshToken).toHaveBeenCalledWith(refreshToken);
+            expect(usersService.findById).toHaveBeenCalledWith(1);
+            expect(result).toEqual({ access_token: mockNewAccessToken });
+        });
+
+        it('should return error for invalid refresh token', async () => {
+            const invalidToken = 'invalid.refresh.token';
+
+            jest.spyOn(tokenService, 'verifyRefreshToken').mockRejectedValue(new Error('Invalid token'));
+
+            const result = await service.refresh(invalidToken);
+
+            expect(result).toEqual({ error: "Token de renovación inválido" });
+        });
+    });
 });

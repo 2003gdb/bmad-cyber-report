@@ -16,7 +16,8 @@ export class AppController {
   }
 }
 
-@Controller()
+// API controller with no route conflicts
+@Controller('')
 export class ApiController {
   constructor(private readonly appService: AppService) {}
 

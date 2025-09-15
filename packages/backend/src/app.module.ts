@@ -1,13 +1,15 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MulterModule } from '@nestjs/platform-express';
-import { AppController, ApiController } from './app.controller';
+import { JwtModule } from '@nestjs/jwt';
+import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { DatabaseModule } from './shared/database/database.module';
+import { DbModule } from './db/db.module';
 import { AuthModule } from './auth/auth.module';
-import { ReportingModule } from './reporting/reporting.module';
-import { CommunityModule } from './community/community.module';
+import { UsersModule } from './users/users.module';
 import { AdminModule } from './admin/admin.module';
+import { ReportesModule } from './reportes/reportes.module';
+import { ComunidadModule } from './comunidad/comunidad.module';
 
 @Module({
   imports: [
@@ -15,11 +17,16 @@ import { AdminModule } from './admin/admin.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    DatabaseModule,
+    DbModule,
+    UsersModule,
     AuthModule,
-    ReportingModule,
-    CommunityModule,
     AdminModule,
+    ReportesModule,
+    ComunidadModule,
+    JwtModule.register({
+      global: true,
+      secret: process.env.JWT_SECRET || 'supersecret',
+    }),
     MulterModule.register({
       dest: './uploads/temp',
       limits: {
@@ -27,7 +34,7 @@ import { AdminModule } from './admin/admin.module';
       },
     }),
   ],
-  controllers: [AppController, ApiController],
+  controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
