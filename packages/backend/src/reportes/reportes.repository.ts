@@ -45,16 +45,16 @@ export class ReportesRepository {
         `;
 
         const values = [
-            data.user_id || null,
+            data.user_id ?? null,
             data.is_anonymous,
             data.attack_type,
             data.incident_date,
-            data.incident_time || null,
+            data.incident_time ?? null,
             data.attack_origin,
-            data.suspicious_url || null,
-            data.message_content || null,
+            data.suspicious_url ?? null,
+            data.message_content ?? null,
             data.impact_level,
-            data.description || null
+            data.description ?? null
         ];
 
         try {
@@ -62,7 +62,7 @@ export class ReportesRepository {
             const insertResult = result as { insertId: number };
             return this.findById(insertResult.insertId);
         } catch (error) {
-            console.error('Error creating reporte:', error);
+            console.error('❌ Error creating reporte:', error);
             return null;
         }
     }

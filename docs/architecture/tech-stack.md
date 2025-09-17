@@ -56,7 +56,6 @@ MAX_FILE_SIZE=10485760
 # Application Configuration
 NODE_ENV=development
 PORT=3000
-API_PREFIX=api/v1
 ```
 
 ## Implementation Architecture

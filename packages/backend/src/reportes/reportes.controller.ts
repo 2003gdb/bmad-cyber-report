@@ -30,9 +30,10 @@ export class ReportesController {
             const userId = isAuthenticated ? parseInt(req.user.userId) : null;
 
             // Create report data
+            const isAnonymousReport = crearReporteDto.is_anonymous ?? !isAuthenticated;
             const reporteData = {
-                user_id: userId,
-                is_anonymous: crearReporteDto.is_anonymous ?? !isAuthenticated, // Default based on auth status
+                user_id: isAnonymousReport ? null : userId, // NULL for anonymous reports
+                is_anonymous: isAnonymousReport,
                 attack_type: crearReporteDto.attack_type,
                 incident_date: crearReporteDto.incident_date,
                 incident_time: crearReporteDto.incident_time,
@@ -52,6 +53,31 @@ export class ReportesController {
                 };
             }
 
+            // Process file attachments if provided
+            const attachments = [];
+            if (files && files.length > 0) {
+                for (const file of files) {
+                    try {
+                        const attachment = await this.reportesService.addAttachment({
+                            reporte_id: reporte.id,
+                            file_path: file.path,
+                            file_hash: file.filename // Using filename as hash for now
+                        });
+                        if (attachment) {
+                            attachments.push({
+                                id: attachment.id,
+                                filename: file.originalname,
+                                size: file.size,
+                                mimetype: file.mimetype
+                            });
+                        }
+                    } catch (attachmentError) {
+                        console.error('Error processing attachment:', attachmentError);
+                        // Continue processing other files even if one fails
+                    }
+                }
+            }
+
             // Generate personalized recommendations
             const recommendations = await this.reportesService.generateRecommendations(reporte);
 
@@ -66,6 +92,8 @@ export class ReportesController {
                 message: "Reporte creado exitosamente",
                 reporte: {
                     id: reporte.id,
+                    user_id: reporte.user_id,
+                    is_anonymous: reporte.is_anonymous,
                     attack_type: reporte.attack_type,
                     incident_date: reporte.incident_date,
                     impact_level: reporte.impact_level,
@@ -74,6 +102,7 @@ export class ReportesController {
                 },
                 recommendations: recommendations,
                 victim_support: victimSupport,
+                attachments: attachments,
                 files_uploaded: files?.length || 0
             };
 

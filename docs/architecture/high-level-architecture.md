@@ -34,38 +34,91 @@ SafeTrade employs a **modern modular monolith architecture** with native mobile 
 
 ```mermaid
 graph TB
-    subgraph "Client Layer"
-        iOS[iOS App<br/>SwiftUI + Swift]
-        Admin[Admin Portal<br/>Next.js + React]
+    subgraph Frontend["Frontend Layer"]
+        subgraph iOS["iOS Mobile Application"]
+            iOSViews["SwiftUI Views<br/>WelcomeView, LoginView, ReportSubmissionView"]
+            iOSViewModels["ViewModels<br/>Published State with Combine"]
+            iOSServices["Services<br/>AuthenticationService, ReportingService, APIService"]
+            iOSModels["Models<br/>User, Report, AuthResponse"]
+            iOSRepo["Repository<br/>Keychain Secure Storage"]
+        end
+
+        subgraph Admin["Next.js Admin Portal"]
+            AdminPages["App Router Pages<br/>Dashboard, Reports, Analytics"]
+            AdminComponents["React Components<br/>Server and Client Components"]
+            AdminAPI["API Integration<br/>AdminAPIService, AuthContext"]
+            AdminUI["UI Components<br/>Charts, Tables, Forms"]
+        end
     end
-    
-    subgraph "API Gateway"
-        NestJS[NestJS Backend API<br/>Node.js + TypeScript]
+
+    subgraph Backend["Backend API Layer"]
+        NestJS["NestJS Backend API<br/>Node.js + TypeScript"]
+
+        subgraph Modules["NestJS Modules"]
+            AuthModule["AuthModule<br/>JWT Authentication"]
+            ReportingModule["ReportingModule<br/>Incident Reports"]
+            CommunityModule["CommunityModule<br/>Trends and Analytics"]
+            AdminModule["AdminModule<br/>Admin Portal API"]
+        end
     end
-    
-    subgraph "Data Layer"
-        SQL[(MySQL<br/>Local Development)]
-        Files[File Storage<br/>Local/Cloud]
+
+    subgraph Data["Data Layer"]
+        SQL[("MySQL Database<br/>Users, Reports, Analytics")]
+        Files["File Storage<br/>Report Attachments"]
+        Cache["Cache Layer<br/>Session and Performance"]
     end
-    
-    subgraph "External Services"
-        JWT[JWT Token Service]
-        SSL[SSL/TLS Certificates]
+
+    subgraph External["External Services"]
+        JWT["JWT Token Service<br/>Authentication Tokens"]
+        SSL["SSL/TLS Certificates<br/>Secure Communication"]
     end
-    
-    iOS -->|HTTPS/REST| NestJS
-    Admin -->|HTTPS/REST| NestJS
-    NestJS -->|Direct SQL Queries| SQL
-    NestJS -->|File Uploads| Files
-    NestJS <-->|Token Validation| JWT
-    
-    classDef mobile fill:#A1CDF4
+
+    %% iOS Mobile Connections
+    iOSViews --> iOSViewModels
+    iOSViewModels --> iOSServices
+    iOSServices --> iOSModels
+    iOSServices --> iOSRepo
+    iOSServices -->|HTTPS/REST API| NestJS
+
+    %% Admin Portal Connections
+    AdminPages --> AdminComponents
+    AdminComponents --> AdminAPI
+    AdminAPI --> AdminUI
+    AdminAPI -->|HTTPS/REST API| NestJS
+
+    %% Backend Module Connections
+    NestJS --> AuthModule
+    NestJS --> ReportingModule
+    NestJS --> CommunityModule
+    NestJS --> AdminModule
+
+    %% Data Layer Connections
+    AuthModule -->|Direct SQL Queries| SQL
+    ReportingModule -->|Direct SQL Queries| SQL
+    CommunityModule -->|Direct SQL Queries| SQL
+    AdminModule -->|Direct SQL Queries| SQL
+    ReportingModule -->|File Storage| Files
+
+    %% External Service Connections
+    AuthModule <-->|Token Management| JWT
+    AdminModule <-->|Token Validation| JWT
+    NestJS <-->|TLS Encryption| SSL
+
+    %% Caching
+    ReportingModule --> Cache
+    CommunityModule --> Cache
+
+    classDef mobile fill:#A1CDF4, color:#000
+    classDef admin fill:#98FB98, color:#000
     classDef api fill:#25283D,color:#fff
-    classDef data fill:#F5853F
-    
-    class iOS mobile
-    class NestJS api
-    class SQL,Files data
+    classDef data fill:#F5853F, color:#000
+    classDef external fill:#DDA0DD, color:#000
+
+    class iOSViews,iOSViewModels,iOSServices,iOSModels,iOSRepo mobile
+    class AdminPages,AdminComponents,AdminAPI,AdminUI admin
+    class NestJS,AuthModule,ReportingModule,CommunityModule,AdminModule api
+    class SQL,Files,Cache data
+    class JWT,SSL external
 ```
 
 ## Architectural and Design Patterns
@@ -83,6 +136,16 @@ graph TB
 - **Service Layer Pattern:** Business logic encapsulated in NestJS services - _Rationale:_ Clear separation of concerns, testable business rules, dependency injection support
 
 - **API Gateway Pattern:** Single NestJS backend serving multiple clients - _Rationale:_ Unified API surface, consistent authentication, simplified deployment for academic project
+
+**Frontend Architectural Patterns:**
+
+- **iOS MVVM Pattern:** SwiftUI views with ObservableObject ViewModels and @Published properties - _Rationale:_ Reactive state management, testable business logic, automatic UI updates with Combine framework
+
+- **iOS Repository Pattern:** Secure data persistence layer with Keychain integration - _Rationale:_ Secure JWT token storage, clean data access abstraction, iOS security best practices
+
+- **Next.js App Router Pattern:** Server and client component hybrid architecture - _Rationale:_ SEO optimization for admin dashboard, progressive enhancement, optimal performance
+
+- **React Component Composition:** Reusable UI components with TypeScript integration - _Rationale:_ Maintainable admin interface, type safety, consistent design system
 
 ## Implemented Spanish Endpoints
 
