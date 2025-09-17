@@ -1,10 +1,13 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, RequestMethod } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { EnvValidationService } from './common/config/env-validation.service';
 import 'dotenv/config';
 
 async function bootstrap() {
+  // Validate required environment variables before starting the app
+  EnvValidationService.validateRequiredEnvVars();
   const app = await NestFactory.create(AppModule);
   
   // Enable CORS with specific origins (no wildcard in production)

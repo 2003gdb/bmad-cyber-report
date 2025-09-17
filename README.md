@@ -77,17 +77,17 @@ Este proyecto utiliza una arquitectura de monorepo con las siguientes tecnologí
 ## 📚 Endpoints de API
 
 ### Autenticación
-- `POST /api/v1/auth/login` - Iniciar sesión
-- `POST /api/v1/auth/register` - Registrar usuario
+- `POST /auth/login` - Iniciar sesión
+- `POST /auth/register` - Registrar usuario
 
 ### Reportes (Español)
-- `POST /api/v1/reportes` - Crear reporte
-- `GET /api/v1/reportes` - Listar reportes
-- `PUT /api/v1/reportes/:id/estado` - Actualizar estado de reporte
+- `POST /reportes` - Crear reporte
+- `GET /reportes` - Listar reportes
+- `PUT /reportes/:id/estado` - Actualizar estado de reporte
 
 ### Tendencias Comunitarias (Español)
-- `GET /api/v1/tendencias-comunidad/tendencias` - Obtener tendencias
-- `GET /api/v1/tendencias-comunidad/recomendaciones` - Recomendaciones
+- `GET /tendencias-comunidad/tendencias` - Obtener tendencias
+- `GET /tendencias-comunidad/recomendaciones` - Recomendaciones
 
 ## 🔒 Características de Seguridad
 

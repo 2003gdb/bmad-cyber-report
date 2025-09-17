@@ -291,7 +291,7 @@ class AuthService: ObservableObject {
 #### HTTP Client Configuration
 ```swift
 class APIService {
-    private let baseURL = "http://localhost:3000/api/v1"
+    private let baseURL = "http://localhost:3000/"
     private let session: URLSession
     
     init() {
@@ -737,7 +737,7 @@ export function ErrorMessage({ message, onRetry }: ErrorMessageProps) {
 import axios from 'axios'
 import { useAuthStore } from '@/store/authStore'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -1909,7 +1909,7 @@ import { beforeAll, afterEach, afterAll, describe, it, expect } from 'vitest'
 
 // Mock server setup
 const server = setupServer(
-  http.get('http://localhost:3000/api/v1/reports', () => {
+  http.get('http://localhost:3000/reports', () => {
     return HttpResponse.json({
       reports: [
         {
@@ -1927,14 +1927,14 @@ const server = setupServer(
     })
   }),
   
-  http.put('http://localhost:3000/api/v1/admin/reports/:id/status', ({ params }) => {
+  http.put('http://localhost:3000/admin/reports/:id/status', ({ params }) => {
     return HttpResponse.json({
       message: 'Estado actualizado correctamente',
       report_id: params.id,
     })
   }),
   
-  http.post('http://localhost:3000/api/v1/admin/login', async ({ request }) => {
+  http.post('http://localhost:3000/admin/login', async ({ request }) => {
     const body = await request.json() as any
     
     if (body.email === 'admin@safetrade.com' && body.password === 'password') {
@@ -2401,12 +2401,12 @@ export function LoginForm() {
 ```swift
 // Config.xcconfig for different environments
 // Development.xcconfig
-API_BASE_URL = http:/$()/localhost:3000/api/v1
+API_BASE_URL = http:/$()/localhost:3000
 ENABLE_LOGGING = YES
 BUILD_CONFIGURATION = DEBUG
 
 // Production.xcconfig  
-API_BASE_URL = https:/$()/api.safetrade.com/api/v1
+API_BASE_URL = https:/$()/api.safetrade.com
 ENABLE_LOGGING = NO
 BUILD_CONFIGURATION = RELEASE
 ```
@@ -2533,13 +2533,13 @@ module.exports = process.env.NODE_ENV === 'production'
 #### Environment Configuration
 ```bash
 # .env.local.example
-NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+NEXT_PUBLIC_API_URL=http://localhost:3000
 NEXT_PUBLIC_APP_ENV=development
 NEXTAUTH_SECRET=your-nextauth-secret-here
 NEXTAUTH_URL=http://localhost:3001
 
 # Production environment
-NEXT_PUBLIC_API_URL=https://api.safetrade.com/api/v1
+NEXT_PUBLIC_API_URL=https://api.safetrade.com
 NEXT_PUBLIC_APP_ENV=production
 NEXTAUTH_SECRET=production-secret
 NEXTAUTH_URL=https://admin.safetrade.com

@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 
 import { Injectable } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
@@ -23,7 +22,7 @@ export class AdminService {
         const users = await this.usersService.findAll();
         // Remove sensitive data before returning
         return users.map(user => {
-            const { password_hash, salt, ...safeUser } = user;
+            const { password_hash: _password_hash, salt: _salt, ...safeUser } = user;
             return safeUser;
         });
     }
@@ -31,7 +30,7 @@ export class AdminService {
     async getUserById(id: number) {
         const user = await this.usersService.findById(id);
         if (user) {
-            const { password_hash, salt, ...safeUser } = user;
+            const { password_hash: _password_hash, salt: _salt, ...safeUser } = user;
             return safeUser;
         }
         return null;

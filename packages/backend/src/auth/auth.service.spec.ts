@@ -1,5 +1,3 @@
-/* eslint-disable prettier/prettier */
-
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
@@ -11,7 +9,6 @@ describe('AuthService', () => {
     let service: AuthService;
     let usersService: UsersService;
     let tokenService: TokenService;
-    let adminRepository: AdminRepository;
 
     const mockUser: User = {
         id: 1,
@@ -24,14 +21,6 @@ describe('AuthService', () => {
         updated_at: new Date()
     };
 
-    const mockAdmin = {
-        id: 1,
-        email: 'admin@example.com',
-        password_hash: 'hashed_admin_password',
-        salt: 'admin_salt',
-        last_login: null,
-        created_at: new Date()
-    };
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
@@ -68,7 +57,6 @@ describe('AuthService', () => {
         service = module.get<AuthService>(AuthService);
         usersService = module.get<UsersService>(UsersService);
         tokenService = module.get<TokenService>(TokenService);
-        adminRepository = module.get<AdminRepository>(AdminRepository);
     });
 
     afterEach(() => {

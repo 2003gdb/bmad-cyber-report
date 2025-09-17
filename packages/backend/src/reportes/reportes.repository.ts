@@ -1,5 +1,3 @@
-/* eslint-disable prettier/prettier */
-
 import { Injectable } from "@nestjs/common";
 import { DbService } from "src/db/db.service";
 
@@ -61,7 +59,7 @@ export class ReportesRepository {
 
         try {
             const [result] = await this.db.getPool().query(sql, values);
-            const insertResult = result as any;
+            const insertResult = result as { insertId: number };
             return this.findById(insertResult.insertId);
         } catch (error) {
             console.error('Error creating reporte:', error);
@@ -79,7 +77,7 @@ export class ReportesRepository {
             WHERE r.id = ? LIMIT 1
         `;
         const [rows] = await this.db.getPool().query(sql, [id]);
-        const result = rows as any[];
+        const result = rows as Reporte[];
         return result[0] || null;
     }
 
@@ -156,11 +154,11 @@ export class ReportesRepository {
         const [identifiedRows] = await this.db.getPool().query(identifiedSql);
 
         return {
-            total: (totalRows as any[])[0].count,
-            today: (todayRows as any[])[0].count,
-            this_week: (weekRows as any[])[0].count,
-            anonymous: (anonymousRows as any[])[0].count,
-            identified: (identifiedRows as any[])[0].count,
+            total: (totalRows as { count: number }[])[0].count,
+            today: (todayRows as { count: number }[])[0].count,
+            this_week: (weekRows as { count: number }[])[0].count,
+            anonymous: (anonymousRows as { count: number }[])[0].count,
+            identified: (identifiedRows as { count: number }[])[0].count,
         };
     }
 }

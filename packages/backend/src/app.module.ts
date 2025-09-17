@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MulterModule } from '@nestjs/platform-express';
 import { JwtModule } from '@nestjs/jwt';
+import { EnvValidationService } from './common/config/env-validation.service';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DbModule } from './db/db.module';
@@ -25,7 +26,7 @@ import { ComunidadModule } from './comunidad/comunidad.module';
     ComunidadModule,
     JwtModule.register({
       global: true,
-      secret: process.env.JWT_SECRET || 'supersecret',
+      secret: EnvValidationService.getJwtSecret(),
     }),
     MulterModule.register({
       dest: './uploads/temp',

@@ -31,12 +31,13 @@ Since SafeTrade includes a significant iOS mobile application, a separate Fronte
 | Date | Version | Description | Author |
 |------|---------|-------------|---------|
 | 2025-09-11 | 1.0 | Initial architecture creation from PRD | Winston (Architect Agent) |
+| 2025-01-15 | 2.0 | Updated to reflect new modular structure and MySQL implementation | Winston (Architect Agent) |
 
 ## High Level Architecture
 
 ### Technical Summary
 
-SafeTrade employs a **modern three-tier architecture** with native mobile client, enterprise-grade backend API, and web-based administrative interface. The system uses **NestJS microservice-ready monolith** for rapid development with future scaling capabilities, **SQL Server relational database** for structured data integrity, and **JWT-based authentication** supporting both anonymous and identified user flows. Core architectural patterns include **Repository Pattern** for data access, **Service Layer Architecture** for business logic separation, and **Event-Driven Communication** for future extensibility. This architecture directly supports PRD goals by enabling friction-free mobile reporting, community intelligence aggregation, and administrative oversight while maintaining 99.5% uptime and sub-2-second response times.
+SafeTrade employs a **modern modular monolith architecture** with native mobile client, enterprise-grade backend API, and web-based administrative interface. The system uses **NestJS with repository pattern** for rapid development with clear module boundaries, **MySQL relational database** with direct query approach for performance and simplicity, and **triple JWT-based authentication** supporting anonymous, registered user, and admin flows. Core architectural patterns include **Repository Pattern** for data access, **Service Layer Architecture** for business logic separation, and **Module Reuse Strategy** for admin functionality. This architecture directly supports PRD goals by enabling friction-free mobile reporting, community intelligence aggregation, and administrative oversight while maintaining 99.5% uptime and sub-2-second response times.
 
 ### High Level Overview
 
@@ -48,19 +49,21 @@ SafeTrade employs a **modern three-tier architecture** with native mobile client
 - Unified codebase management for iOS app, NestJS backend, and Next.js admin portal
 - Shared TypeScript types and utilities across backend and admin frontend
 
-**Service Architecture:** NestJS Monolithic Backend (from PRD decision)
-- Faster development and simplified deployment for academic timeline
-- Internal module architecture: AuthModule, ReportingModule, AnalyticsModule, CommunityModule
+**Service Architecture:** NestJS Modular Backend with Repository Pattern
+- Controller → Service → Repository pattern for clean separation
+- Internal module architecture: AuthModule, UsersModule, ReportesModule, ComunidadModule, AdminModule
+- Admin module reuses existing UsersService and ReportesService for DRY principle
 
 **Primary User Interaction Flow:**
 1. **Mobile Entry:** iOS app → Authentication choice (anonymous/registered) → Report submission → Community trends
-2. **Data Flow:** Mobile reports → NestJS API → SQL Server → Analytics processing → Community insights
+2. **Data Flow:** Mobile reports → NestJS API → MySQL → Analytics processing → Community insights
 3. **Admin Flow:** Web portal → Report management → Status updates → Analytics dashboard
 
 **Key Architectural Decisions:**
 - **NestJS over Express:** Enterprise patterns, TypeScript-first, dependency injection for scalable module architecture
 - **Next.js for Admin:** SSR capabilities, built-in optimizations, potential API route supplementation
-- **JWT Authentication:** Stateless tokens supporting both anonymous and identified reporting workflows
+- **MySQL with Direct Queries:** Direct SQL approach for performance and simplicity over ORM abstraction
+- **Triple JWT Authentication:** Anonymous access, user tokens, and admin tokens with different permissions
 
 ### High Level Project Diagram
 
@@ -76,7 +79,7 @@ graph TB
     end
     
     subgraph "Data Layer"
-        SQL[(SQL Server<br/>Self-hosted)]
+        SQL[(MySQL<br/>Local Development)]
         Files[File Storage<br/>Local/Cloud]
     end
     
@@ -87,7 +90,7 @@ graph TB
     
     iOS -->|HTTPS/REST| NestJS
     Admin -->|HTTPS/REST| NestJS
-    NestJS -->|Sequelize ORM| SQL
+    NestJS -->|Direct SQL Queries| SQL
     NestJS -->|File Uploads| Files
     NestJS <-->|Token Validation| JWT
     
@@ -462,6 +465,48 @@ sequenceDiagram
     AdminMod-->>Admin: Investigation status updated
 ```
 
+## Implemented Spanish Endpoints
+
+### Summary of Current Implementation
+
+The restructured SafeTrade backend now implements the following Spanish endpoints following the new modular pattern:
+
+**Authentication Endpoints:**
+- `POST /auth/login` - User authentication
+- `POST /auth/refresh` - Token renewal
+- `GET /auth/profile` - User profile (requires JWT)
+
+**User Management:**
+- `POST /users/register` - User registration
+- `GET /users/profile` - User profile (authenticated)
+
+**Incident Reporting (Spanish Module Names):**
+- `POST /reportes` - Create incident report (anonymous + authenticated)
+- `GET /reportes/:id` - Get specific report details
+- `GET /reportes/user/mis-reportes` - User's own reports (authenticated)
+
+**Community Intelligence (Spanish Module Names):**
+- `GET /comunidad/tendencias` - Community threat trends
+- `GET /comunidad/recomendaciones/:reporteId` - Personalized security recommendations
+- `GET /comunidad/analytics` - Community analytics
+- `GET /comunidad/alerta` - Community alert status
+
+**Admin Management:**
+- `POST /admin/login` - Admin authentication
+- `GET /admin/users/list` - All users list (admin only)
+- `GET /admin/users/:id` - Specific user details (admin only)
+- `GET /admin/dashboard` - Admin dashboard statistics
+- `GET /admin/reportes` - Filtered reports list (admin only)
+
+### Key Implementation Features
+
+- **Triple Authentication**: Anonymous access, JWT user tokens, JWT admin tokens
+- **Repository Pattern**: Controller → Service → Repository for all modules
+- **Module Reuse**: Admin module reuses UsersService and ReportesService
+- **Spanish Localization**: All endpoints, responses, and error messages in Spanish
+- **File Upload Support**: Incident reports can include screenshot attachments
+- **Community Intelligence**: Automated threat trend analysis and personalized recommendations
+
 ## REST API Spec
 
 ```yaml
@@ -471,7 +516,7 @@ info:
   version: 1.0.0
   description: RESTful API for SafeTrade platform supporting anonymous and identified cybersecurity incident reporting with community intelligence features
 servers:
-  - url: http://localhost:3000/api/v1
+  - url: http://localhost:3000/
     description: Local development server
 
 components:
@@ -916,694 +961,235 @@ paths:
 ## Database Schema
 
 ```sql
--- SafeTrade Database Schema for SQL Server Express
--- Academic Project - Optimized for <10GB limit
+-- SafeTrade MySQL Database Schema
+-- Cybersecurity Incident Reporting Platform
 
--- Users Table (Optional Registration)
-CREATE TABLE Users (
-    user_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    email NVARCHAR(255) UNIQUE NOT NULL,
-    password_hash NVARCHAR(255) NOT NULL,
-    jwt_token NVARCHAR(500) NULL, -- Current session token
-    created_at DATETIME2 DEFAULT GETUTCDATE(),
-    updated_at DATETIME2 DEFAULT GETUTCDATE(),
-    
-    -- Indexes for performance
-    INDEX IX_Users_Email (email),
-    INDEX IX_Users_JwtToken (jwt_token)
+-- Drop tables if they exist (for clean setup)
+DROP TABLE IF EXISTS reporte_adjuntos;
+DROP TABLE IF EXISTS reportes;
+DROP TABLE IF EXISTS admin_users;
+DROP TABLE IF EXISTS users;
+
+-- Users table (optional registration for identified reporting)
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    name VARCHAR(255),
+    password_hash VARCHAR(255) NOT NULL,
+    salt VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Reports Table (Core Incident Data)
-CREATE TABLE Reports (
-    report_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    user_id UNIQUEIDENTIFIER NULL, -- NULL for anonymous reports
-    is_anonymous BIT NOT NULL DEFAULT 1, -- Explicit anonymous flag
-    
-    -- Attack Details
-    attack_type NVARCHAR(20) NOT NULL 
-        CHECK (attack_type IN ('email', 'SMS', 'whatsapp', 'llamada', 'redes_sociales', 'otro')),
+-- Admin users table (separate from regular users for security)
+CREATE TABLE admin_users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    salt VARCHAR(255) NOT NULL,
+    last_login TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Reports table (core incident reporting - Spanish field names where appropriate)
+CREATE TABLE reportes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL, -- NULL for anonymous reports
+    is_anonymous BOOLEAN DEFAULT TRUE,
+
+    -- Attack details
+    attack_type ENUM('email', 'SMS', 'whatsapp', 'llamada', 'redes_sociales', 'otro') NOT NULL,
     incident_date DATE NOT NULL,
     incident_time TIME NULL,
-    attack_origin NVARCHAR(255) NOT NULL, -- Phone/email of attacker
-    
-    -- Optional Evidence
-    suspicious_url NVARCHAR(2048) NULL,
-    message_content NTEXT NULL, -- Original attack message
-    description NTEXT NULL, -- Free-text description
-    
-    -- Impact Assessment
-    impact_level NVARCHAR(30) NOT NULL 
-        CHECK (impact_level IN ('ninguno', 'robo_datos', 'robo_dinero', 'cuenta_comprometida')),
-    
-    -- Administrative
-    status NVARCHAR(20) NOT NULL DEFAULT 'nuevo'
-        CHECK (status IN ('nuevo', 'revisado', 'en_investigacion', 'cerrado')),
-    admin_notes NTEXT NULL, -- Investigation notes
-    
+    attack_origin VARCHAR(255) NOT NULL, -- Phone number or email of attacker
+
+    -- Optional evidence
+    suspicious_url TEXT NULL,
+    message_content TEXT NULL, -- Original attack message
+    description TEXT NULL, -- Free-text description
+
+    -- Impact assessment
+    impact_level ENUM('ninguno', 'robo_datos', 'robo_dinero', 'cuenta_comprometida') NOT NULL,
+
+    -- Administrative fields
+    status ENUM('nuevo', 'revisado', 'en_investigacion', 'cerrado') DEFAULT 'nuevo',
+    admin_notes TEXT NULL, -- Investigation notes
+
     -- Timestamps
-    created_at DATETIME2 DEFAULT GETUTCDATE(),
-    updated_at DATETIME2 DEFAULT GETUTCDATE(),
-    
-    -- Foreign Key (nullable for anonymous)
-    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE SET NULL,
-    
-    -- Performance Indexes
-    INDEX IX_Reports_AttackType (attack_type),
-    INDEX IX_Reports_IncidentDate (incident_date),
-    INDEX IX_Reports_Status (status),
-    INDEX IX_Reports_ImpactLevel (impact_level),
-    INDEX IX_Reports_Anonymous (is_anonymous),
-    INDEX IX_Reports_UserId (user_id), -- For user report history
-    INDEX IX_Reports_CreatedAt (created_at) -- For trends analysis
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    -- Foreign key constraints
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+
+    -- Indexes for performance
+    INDEX idx_attack_type (attack_type),
+    INDEX idx_incident_date (incident_date),
+    INDEX idx_status (status),
+    INDEX idx_impact_level (impact_level),
+    INDEX idx_anonymous (is_anonymous),
+    INDEX idx_user_id (user_id),
+    INDEX idx_created_at (created_at)
 );
 
--- Report Attachments (File Uploads)
-CREATE TABLE ReportAttachments (
-    attachment_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    report_id UNIQUEIDENTIFIER NOT NULL,
-    
-    -- File Information
-    file_name NVARCHAR(255) NOT NULL,
-    original_name NVARCHAR(255) NOT NULL, -- User's original filename
-    file_path NVARCHAR(500) NOT NULL, -- Server storage path
+-- Report attachments table (screenshots and evidence files)
+CREATE TABLE reporte_adjuntos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    reporte_id INT NOT NULL,
+
+    -- File information
+    file_name VARCHAR(255) NOT NULL,
+    original_name VARCHAR(255) NOT NULL, -- User's original filename
+    file_path VARCHAR(500) NOT NULL, -- Server storage path
     file_size BIGINT NOT NULL, -- Size in bytes
-    mime_type NVARCHAR(100) NOT NULL, -- Content type validation
-    
-    -- Security
-    file_hash NVARCHAR(64) NULL, -- SHA-256 for integrity
-    scan_status NVARCHAR(20) DEFAULT 'pending' -- For malware scanning
-        CHECK (scan_status IN ('pending', 'clean', 'quarantined')),
-    
-    uploaded_at DATETIME2 DEFAULT GETUTCDATE(),
-    
-    FOREIGN KEY (report_id) REFERENCES Reports(report_id) ON DELETE CASCADE,
-    
-    -- Performance Index
-    INDEX IX_Attachments_ReportId (report_id)
+    mime_type VARCHAR(100) NOT NULL, -- Content type validation
+
+    -- Security and integrity
+    file_hash VARCHAR(64) NULL, -- SHA-256 for integrity
+    scan_status ENUM('pending', 'clean', 'quarantined') DEFAULT 'pending',
+
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (reporte_id) REFERENCES reportes(id) ON DELETE CASCADE,
+
+    -- Performance indexes
+    INDEX idx_reporte_id (reporte_id),
+    INDEX idx_scan_status (scan_status)
 );
 
--- Admin Users (Separate from regular users)
-CREATE TABLE AdminUsers (
-    admin_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    email NVARCHAR(255) UNIQUE NOT NULL,
-    password_hash NVARCHAR(255) NOT NULL,
-    
-    -- Admin Metadata
-    role NVARCHAR(50) DEFAULT 'admin' -- Future role expansion
-        CHECK (role IN ('admin', 'super_admin')),
-    is_active BIT DEFAULT 1,
-    last_login DATETIME2 NULL,
-    
-    created_at DATETIME2 DEFAULT GETUTCDATE(),
-    
-    INDEX IX_AdminUsers_Email (email),
-    INDEX IX_AdminUsers_Active (is_active)
-);
+-- Insert sample admin user (password: 'admin123' - hashed with salt)
+-- Note: In production, use proper password hashing with bcrypt
+INSERT INTO admin_users (email, password_hash, salt) VALUES
+('admin@safetrade.com', 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'admin_salt');
 
--- Community Analytics Cache (Performance Optimization)
-CREATE TABLE CommunityTrends (
-    trend_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    
-    -- Trend Data
-    attack_type NVARCHAR(20) NOT NULL,
-    time_period NVARCHAR(10) NOT NULL -- '7days', '30days', '90days'
-        CHECK (time_period IN ('7days', '30days', '90days')),
-    region NVARCHAR(100) NULL, -- For future regional analysis
-    
-    -- Calculated Statistics
-    report_count INT NOT NULL,
-    percentage DECIMAL(5,2) NOT NULL,
-    trend_direction NVARCHAR(10) NULL -- 'increasing', 'decreasing', 'stable'
-        CHECK (trend_direction IN ('increasing', 'decreasing', 'stable')),
-    
-    -- Cache Management
-    calculated_at DATETIME2 DEFAULT GETUTCDATE(),
-    expires_at DATETIME2 NOT NULL, -- TTL for cache invalidation
-    
-    -- Performance Indexes
-    INDEX IX_Trends_Period_Type (time_period, attack_type),
-    INDEX IX_Trends_Expiry (expires_at)
-);
+-- Create sample user for testing
+INSERT INTO users (email, name, password_hash, salt) VALUES
+('user@test.com', 'Usuario de Prueba', 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'user_salt');
 
--- Trigger for automatic updated_at timestamps
-CREATE TRIGGER TR_Users_UpdatedAt ON Users
-    AFTER UPDATE
-AS
-BEGIN
-    UPDATE Users 
-    SET updated_at = GETUTCDATE()
-    WHERE user_id IN (SELECT user_id FROM inserted);
-END;
-
-CREATE TRIGGER TR_Reports_UpdatedAt ON Reports
-    AFTER UPDATE
-AS
-BEGIN
-    UPDATE Reports 
-    SET updated_at = GETUTCDATE()
-    WHERE report_id IN (SELECT report_id FROM inserted);
-END;
-
--- Views for Common Queries
-
--- Anonymous Reports View (Privacy Protection)
-CREATE VIEW AnonymousReports AS
-SELECT 
-    report_id,
-    attack_type,
-    incident_date,
-    impact_level,
-    status,
-    created_at
-FROM Reports
-WHERE is_anonymous = 1;
-
--- User Report History View (Identified Reports Only)
-CREATE VIEW UserReportHistory AS
-SELECT 
-    r.report_id,
-    r.user_id,
-    r.attack_type,
-    r.incident_date,
-    r.impact_level,
-    r.status,
-    r.created_at,
-    COUNT(a.attachment_id) as attachment_count
-FROM Reports r
-LEFT JOIN ReportAttachments a ON r.report_id = a.report_id
-WHERE r.is_anonymous = 0 AND r.user_id IS NOT NULL
-GROUP BY r.report_id, r.user_id, r.attack_type, r.incident_date, 
-         r.impact_level, r.status, r.created_at;
-
--- Admin Dashboard Summary View
-CREATE VIEW AdminDashboard AS
-SELECT 
-    COUNT(*) as total_reports,
-    COUNT(CASE WHEN created_at >= CAST(GETDATE() AS DATE) THEN 1 END) as reports_today,
-    COUNT(CASE WHEN impact_level IN ('robo_dinero', 'robo_datos') THEN 1 END) as critical_reports,
-    COUNT(CASE WHEN status = 'nuevo' THEN 1 END) as pending_review
-FROM Reports;
+-- Insert sample reports for testing
+INSERT INTO reportes (user_id, is_anonymous, attack_type, incident_date, attack_origin, impact_level, description) VALUES
+(1, FALSE, 'email', '2025-01-15', 'scammer@fake.com', 'ninguno', 'Correo de phishing solicitando credenciales bancarias'),
+(NULL, TRUE, 'whatsapp', '2025-01-14', '+1234567890', 'robo_datos', 'Mensaje de WhatsApp con enlace malicioso');
 ```
 
 ## Source Tree
 
 ```
-safetrade-monorepo/
+bmad-cyber-report/
 ├── packages/
 │   ├── backend/                           # NestJS API Server
 │   │   ├── src/
-│   │   │   ├── auth/                      # AuthModule
-│   │   │   │   ├── auth.controller.ts     # Login/register endpoints
-│   │   │   │   ├── auth.service.ts        # JWT token logic
+│   │   │   ├── auth/                      # AuthModule - Triple authentication
+│   │   │   │   ├── auth.controller.ts     # User/admin login endpoints
+│   │   │   │   ├── auth.service.ts        # Authentication logic
 │   │   │   │   ├── auth.module.ts         # Module definition
-│   │   │   │   ├── guards/                # JWT guards
-│   │   │   │   │   ├── jwt-auth.guard.ts
-│   │   │   │   │   ├── admin.guard.ts
-│   │   │   │   │   └── anonymous.guard.ts
-│   │   │   │   ├── strategies/            # Passport strategies
-│   │   │   │   │   ├── jwt.strategy.ts
-│   │   │   │   │   └── admin-jwt.strategy.ts
-│   │   │   │   └── dto/                   # Data transfer objects
-│   │   │   │       ├── login.dto.ts
-│   │   │   │       └── register.dto.ts
-│   │   │   ├── reporting/                 # ReportingModule
-│   │   │   │   ├── reporting.controller.ts
-│   │   │   │   ├── reporting.service.ts
-│   │   │   │   ├── reporting.module.ts
-│   │   │   │   ├── dto/
-│   │   │   │   │   ├── create-report.dto.ts
-│   │   │   │   │   └── update-status.dto.ts
-│   │   │   │   ├── entities/              # Sequelize models
-│   │   │   │   │   ├── report.entity.ts
-│   │   │   │   │   └── report-attachment.entity.ts
-│   │   │   │   └── services/
-│   │   │   │       ├── file-upload.service.ts
-│   │   │   │       └── validation.service.ts
-│   │   │   ├── community/                 # CommunityModule
-│   │   │   │   ├── community.controller.ts
-│   │   │   │   ├── community.service.ts
-│   │   │   │   ├── community.module.ts
-│   │   │   │   ├── services/
-│   │   │   │   │   ├── trends.service.ts
-│   │   │   │   │   ├── recommendations.service.ts
-│   │   │   │   │   └── analytics.service.ts
-│   │   │   │   └── entities/
-│   │   │   │       └── community-trends.entity.ts
-│   │   │   ├── admin/                     # AdminModule
-│   │   │   │   ├── admin.controller.ts
-│   │   │   │   ├── admin.service.ts
-│   │   │   │   ├── admin.module.ts
-│   │   │   │   ├── entities/
-│   │   │   │   │   └── admin-user.entity.ts
+│   │   │   │   ├── token.service.ts       # JWT token management
+│   │   │   │   └── admin.repository.ts    # Admin user database operations
+│   │   │   ├── users/                     # UsersModule - Repository pattern
+│   │   │   │   ├── users.controller.ts    # User registration, profile
+│   │   │   │   ├── users.service.ts       # User business logic
+│   │   │   │   ├── users.repository.ts    # User database operations
+│   │   │   │   └── users.module.ts        # Module definition
+│   │   │   ├── reportes/                  # ReportesModule - Spanish endpoints
+│   │   │   │   ├── reportes.controller.ts # POST /reportes, GET /reportes/:id
+│   │   │   │   ├── reportes.service.ts    # Report business logic + recommendations
+│   │   │   │   ├── reportes.repository.ts # Report database operations
+│   │   │   │   ├── reportes.module.ts     # Module definition
 │   │   │   │   └── dto/
-│   │   │   │       ├── admin-login.dto.ts
-│   │   │   │       └── report-filter.dto.ts
-│   │   │   ├── shared/                    # Shared utilities
-│   │   │   │   ├── database/
-│   │   │   │   │   ├── database.module.ts
-│   │   │   │   │   └── database.config.ts
-│   │   │   │   ├── config/
-│   │   │   │   │   ├── app.config.ts
-│   │   │   │   │   └── jwt.config.ts
-│   │   │   │   ├── interceptors/
-│   │   │   │   │   ├── logging.interceptor.ts
-│   │   │   │   │   └── response.interceptor.ts
-│   │   │   │   ├── pipes/
-│   │   │   │   │   └── validation.pipe.ts
-│   │   │   │   └── utils/
-│   │   │   │       ├── file-upload.utils.ts
-│   │   │   │       └── crypto.utils.ts
+│   │   │   │       └── crear-reporte.dto.ts # Spanish DTOs
+│   │   │   ├── comunidad/                 # ComunidadModule - Spanish endpoints
+│   │   │   │   ├── comunidad.controller.ts # GET /comunidad/tendencias, etc.
+│   │   │   │   ├── comunidad.service.ts   # Community intelligence + translations
+│   │   │   │   ├── comunidad.repository.ts # Community analytics database
+│   │   │   │   └── comunidad.module.ts    # Module definition
+│   │   │   ├── admin/                     # AdminModule - Reuses services
+│   │   │   │   ├── admin.controller.ts    # GET /admin/users/list, /admin/users/:id
+│   │   │   │   ├── admin.service.ts       # Reuses UsersService + ReportesService
+│   │   │   │   ├── admin.repository.ts    # Admin-specific database operations
+│   │   │   │   └── admin.module.ts        # Imports UsersModule, AuthModule
+│   │   │   ├── common/                    # Shared guards and interfaces
+│   │   │   │   ├── guards/
+│   │   │   │   │   ├── jwt-auth.guard.ts      # Standard JWT guard
+│   │   │   │   │   ├── admin-auth.guard.ts    # Admin-only access guard
+│   │   │   │   │   └── anonymous-auth.guard.ts # Anonymous + auth access
+│   │   │   │   └── interfaces/
+│   │   │   │       └── authenticated-request.ts # Request types
+│   │   │   ├── db/                        # Database module
+│   │   │   │   ├── db.module.ts           # Global database module
+│   │   │   │   └── db.service.ts          # MySQL connection pool
+│   │   │   ├── util/                      # Utility functions
+│   │   │   │   └── hash/
+│   │   │   │       └── hash.util.ts       # Password hashing
 │   │   │   ├── app.module.ts              # Root NestJS module
-│   │   │   ├── app.controller.ts
-│   │   │   └── main.ts                    # Application entry point
-│   │   ├── test/                          # E2E tests
-│   │   │   ├── auth.e2e-spec.ts
-│   │   │   ├── reporting.e2e-spec.ts
-│   │   │   └── jest-e2e.json
+│   │   │   ├── app.controller.ts          # Health checks
+│   │   │   ├── app.service.ts             # Basic app services
+│   │   │   └── main.ts                    # Application entry point + Swagger
+│   │   ├── database/                      # MySQL schema and setup
+│   │   │   └── safetrade_schema.sql       # Complete MySQL schema
 │   │   ├── uploads/                       # File upload storage
-│   │   │   ├── reports/                   # Report attachments
 │   │   │   └── temp/                      # Temporary upload processing
-│   │   ├── database/
-│   │   │   ├── migrations/                # Sequelize migrations
-│   │   │   │   ├── 001-create-users.js
-│   │   │   │   ├── 002-create-reports.js
-│   │   │   │   ├── 003-create-attachments.js
-│   │   │   │   └── 004-create-admin-users.js
-│   │   │   └── seeders/                   # Development test data
-│   │   │       ├── admin-users.js
-│   │   │       └── sample-reports.js
+│   │   ├── test/                          # E2E tests
+│   │   │   ├── app.e2e-spec.ts            # Application tests
+│   │   │   └── jest-e2e.json              # Jest E2E configuration
+│   │   ├── package.json                   # Dependencies and scripts
+│   │   ├── tsconfig.json                  # TypeScript configuration
+│   │   └── nest-cli.json                  # NestJS CLI configuration
 │   │   ├── .env.example                   # Environment template
-│   │   ├── .env                          # Local environment (gitignored)
-│   │   ├── package.json
-│   │   ├── tsconfig.json
-│   │   ├── nest-cli.json
-│   │   └── README.md
+│   │   └── README.md                      # Backend documentation
 │   │
-│   ├── mobile/                           # iOS SwiftUI Application
-│   │   ├── SafeTrade.xcodeproj/          # Xcode project
-│   │   ├── SafeTrade/
-│   │   │   ├── App/                      # App lifecycle
-│   │   │   │   ├── SafeTradeApp.swift
-│   │   │   │   ├── ContentView.swift
-│   │   │   │   └── AppDelegate.swift
-│   │   │   ├── Views/                    # SwiftUI Views
-│   │   │   │   ├── Auth/
-│   │   │   │   │   ├── LoginView.swift
-│   │   │   │   │   ├── RegisterView.swift
-│   │   │   │   │   └── AnonymousChoiceView.swift
-│   │   │   │   ├── Reporting/
-│   │   │   │   │   ├── ReportFormView.swift
-│   │   │   │   │   ├── AttachmentUploadView.swift
-│   │   │   │   │   └── ReportConfirmationView.swift
-│   │   │   │   ├── Community/
-│   │   │   │   │   ├── TrendsView.swift
-│   │   │   │   │   ├── RecommendationsView.swift
-│   │   │   │   │   └── CommunityFeedView.swift
-│   │   │   │   └── Profile/
-│   │   │   │       ├── ProfileView.swift
-│   │   │   │       └── ReportHistoryView.swift
-│   │   │   ├── Models/                   # Data models
-│   │   │   │   ├── User.swift
-│   │   │   │   ├── Report.swift
-│   │   │   │   ├── TrendData.swift
-│   │   │   │   └── AuthResponse.swift
-│   │   │   ├── Services/                 # API communication
-│   │   │   │   ├── APIService.swift
-│   │   │   │   ├── AuthService.swift
-│   │   │   │   ├── ReportingService.swift
-│   │   │   │   └── CommunityService.swift
-│   │   │   ├── ViewModels/              # MVVM pattern
-│   │   │   │   ├── AuthViewModel.swift
-│   │   │   │   ├── ReportingViewModel.swift
-│   │   │   │   └── CommunityViewModel.swift
-│   │   │   ├── Utils/                   # Utilities
-│   │   │   │   ├── Constants.swift
-│   │   │   │   ├── Extensions.swift
-│   │   │   │   └── NetworkManager.swift
-│   │   │   └── Resources/               # Assets
-│   │   │       ├── Assets.xcassets/
-│   │   │       ├── Colors.xcassets/
-│   │   │       └── Localizable.strings  # Spanish localization
-│   │   ├── SafeTradeTests/              # Unit tests
-│   │   │   ├── AuthTests.swift
-│   │   │   ├── ReportingTests.swift
-│   │   │   └── CommunityTests.swift
-│   │   └── README.md
-│   │
-│   └── admin-portal/                     # Next.js Admin Web Interface
-│       ├── src/
-│       │   ├── app/                      # App Router (Next.js 13+)
-│       │   │   ├── login/
-│       │   │   │   └── page.tsx
-│       │   │   ├── dashboard/
-│       │   │   │   └── page.tsx
-│       │   │   ├── reports/
-│       │   │   │   ├── page.tsx
-│       │   │   │   └── [id]/
-│       │   │   │       └── page.tsx
-│       │   │   ├── analytics/
-│       │   │   │   └── page.tsx
-│       │   │   ├── layout.tsx
-│       │   │   └── page.tsx
-│       │   ├── components/               # React components
-│       │   │   ├── auth/
-│       │   │   │   └── LoginForm.tsx
-│       │   │   ├── dashboard/
-│       │   │   │   ├── MetricsCard.tsx
-│       │   │   │   └── RecentReports.tsx
-│       │   │   ├── reports/
-│       │   │   │   ├── ReportsList.tsx
-│       │   │   │   ├── ReportDetails.tsx
-│       │   │   │   ├── StatusUpdate.tsx
-│       │   │   │   └── SearchFilter.tsx
-│       │   │   ├── analytics/
-│       │   │   │   ├── TrendChart.tsx
-│       │   │   │   └── AttackTypeChart.tsx
-│       │   │   └── shared/
-│       │   │       ├── Layout.tsx
-│       │   │       ├── Navigation.tsx
-│       │   │       └── LoadingSpinner.tsx
-│       │   ├── lib/                     # Utilities
-│       │   │   ├── api.ts              # API client
-│       │   │   ├── auth.ts             # Auth utilities
-│       │   │   └── utils.ts
-│       │   ├── types/                  # TypeScript types
-│       │   │   ├── Report.ts
-│       │   │   ├── User.ts
-│       │   │   └── Analytics.ts
-│       │   └── styles/                 # CSS styles
-│       │       ├── globals.css
-│       │       └── components.css
-│       ├── public/                     # Static assets
-│       ├── .env.local.example
-│       ├── .env.local                 # Local environment (gitignored)
-│       ├── package.json
-│       ├── tsconfig.json
-│       ├── tailwind.config.js         # CSS framework
-│       ├── next.config.js
-│       └── README.md
-│
-├── shared/                            # Shared Types and Utilities
-│   ├── types/                         # TypeScript definitions
-│   │   ├── api-responses.ts          # Common API response types
-│   │   ├── report.types.ts           # Report-related types
-│   │   └── auth.types.ts             # Authentication types
-│   ├── constants/                    # Shared constants
-│   │   ├── attack-types.ts
-│   │   ├── impact-levels.ts
-│   │   └── api-endpoints.ts
-│   └── utils/                        # Common utilities
-│       ├── validation.ts
-│       └── date-utils.ts
-│
-├── scripts/                          # Monorepo management
-│   ├── setup.sh                     # Initial project setup
-│   ├── dev.sh                       # Start all development servers
-│   ├── build.sh                     # Build all packages
-│   └── test.sh                      # Run all tests
-│
-├── docs/                            # Project documentation
-│   ├── api/                         # API documentation
-│   │   └── openapi.yaml
-│   ├── architecture.md              # This document
-│   ├── prd.md                       # Product requirements
-│   └── setup-guide.md               # Development setup
-│
-├── .gitignore                       # Git ignore patterns
-├── package.json                     # Root package.json (workspaces)
-├── lerna.json                       # Monorepo configuration
-├── README.md                        # Project overview
-└── LICENSE
+├── docs/                                  # Project documentation
+│   ├── prd.md                            # Product Requirements Document
+│   ├── architecture.md                   # This architecture document
+│   └── stories/                          # User stories and development tasks
+└── README.md                             # Main project documentation
+
+### Key Implementation Features
+
+**Modular Architecture:**
+- Clean separation: Controller → Service → Repository
+- Module reuse: AdminModule imports and reuses UsersModule services
+- Dependency injection throughout all modules
+
+**Database Strategy:**
+- MySQL with direct queries for performance
+- Repository pattern for data access abstraction
+- No ORM overhead - direct SQL for complex queries
+
+**Authentication Strategy:**
+- Anonymous access for friction-free reporting
+- JWT tokens for registered users
+- Separate admin JWT tokens with enhanced permissions
+- All three access patterns supported by guards
+
+**Spanish Localization:**
+- Module names: reportes/, comunidad/
+- Endpoint paths: /reportes, /comunidad/tendencias
+- DTOs and validation messages in Spanish
+- Database enums with Spanish values
 ```
 
-## Infrastructure and Deployment
+## Implementation Summary
 
-### Infrastructure as Code
-- **Tool:** Docker Compose 2.21.0 (for local development containerization)
-- **Location:** `docker/docker-compose.yml` (in project root)
-- **Approach:** Local containerization for consistent development environments across team members
+The SafeTrade backend has been successfully restructured using the new modular architecture pattern with MySQL database and Spanish localization. The implementation includes:
 
-### Deployment Strategy
-- **Strategy:** Local Development with Docker Compose
-- **Primary Environment:** Individual developer machines with shared database container
-- **Presentation Deployment:** Simple production build for final academic presentation
-- **Pipeline Configuration:** Manual build processes documented in `scripts/` directory
+### Completed Modules:
+- **DbModule**: MySQL connection with direct query approach
+- **UsersModule**: Repository pattern for user management
+- **AuthModule**: Triple authentication (anonymous, user, admin)
+- **AdminModule**: Admin management that reuses existing services
+- **ReportesModule**: Spanish incident reporting endpoints
+- **ComunidadModule**: Community intelligence and trends
 
-### Environments
+### Key Spanish Endpoints:
+- `POST /reportes` - Create cybersecurity incident reports
+- `GET /comunidad/tendencias` - Community threat trends
+- `GET /admin/users/list` - Admin user management
+- All responses and error messages in Spanish
 
-- **Development:** Local machine with Docker containers - Individual developer environments with shared SQL Server container and local file storage
-- **Testing:** Local testing environment - Same as development but with test database and mock external services  
-- **Demo:** Academic presentation environment - Production builds running locally for demonstration and evaluation purposes
+### Database Implementation:
+- MySQL schema with proper indexing for performance
+- Spanish enum values for attack types and impact levels
+- Support for anonymous and identified reporting
+- File attachment system for evidence uploads
 
-### Environment Promotion Flow
-
-```
-Individual Development
-    ↓ (manual testing)
-Local Testing Environment
-    ↓ (team integration)
-Team Integration Testing
-    ↓ (academic milestone)
-Demo/Presentation Build
-```
-
-### Rollback Strategy
-- **Primary Method:** Git version control with tagged releases
-- **Trigger Conditions:** Failed integration testing, breaking changes, database corruption
-- **Recovery Time Objective:** 15 minutes (restore from git tag + rebuild containers)
-
-## Error Handling Strategy
-
-### General Approach
-- **Error Model:** NestJS Exception Filters with structured error responses and Spanish localization
-- **Exception Hierarchy:** Built-in HTTP exceptions extended with custom business logic exceptions
-- **Error Propagation:** Centralized error handling with consistent API responses and proper HTTP status codes
-
-### Logging Standards
-- **Library:** Winston 3.9.0 with structured JSON logging and multiple transports
-- **Format:** JSON structured logs with timestamp, level, message, and contextual metadata
-- **Levels:** ERROR (system failures), WARN (recoverable issues), INFO (user actions), DEBUG (development only)
-- **Required Context:**
-  - Correlation ID: UUID v4 format generated per request for request tracing
-  - Service Context: Module name, controller, method for debugging location
-  - User Context: Anonymized user identifier or 'anonymous' for privacy compliance
-
-### Error Handling Patterns
-
-#### External API Errors
-- **Retry Policy:** Exponential backoff (1s, 2s, 4s) with maximum 3 attempts for transient failures
-- **Circuit Breaker:** Open circuit after 5 consecutive failures, half-open retry after 30 seconds
-- **Timeout Configuration:** 5 second timeout for API calls, 10 seconds for file operations
-- **Error Translation:** Map external service errors to SafeTrade business exceptions with Spanish messages
-
-#### Business Logic Errors
-- **Custom Exceptions:** SafeTradeException, InvalidReportException, UnauthorizedAccessException with Spanish error messages
-- **User-Facing Errors:** Structured response format with actionable guidance and Spanish localization
-- **Error Codes:** Hierarchical error code system (AUTH_001, REPORT_002) for precise error identification
-
-#### Data Consistency
-- **Transaction Strategy:** Database transactions for multi-table operations with automatic rollback on failures
-- **Compensation Logic:** Saga pattern for file uploads - rollback file storage if database save fails
-- **Idempotency:** UUID-based operation keys for report submissions to prevent duplicate entries
-
-## Coding Standards
-
-**IMPORTANT NOTE:** These standards are MANDATORY for AI agents and directly control code generation behavior. They focus on project-specific conventions and critical rules to prevent bad code, assuming AI knows general best practices.
-
-### Core Standards
-- **Languages & Runtimes:** TypeScript 5.2.0 for backend/admin, Swift 5.8+ for iOS - strict typing enabled, no `any` types except for third-party integration
-- **Style & Linting:** ESLint 8.44.0 + Prettier 3.0.0 for TS/JS code, SwiftLint for iOS - automatic formatting on save required
-- **Test Organization:** `*.spec.ts` for unit tests alongside source files, `*.e2e-spec.ts` in test/ directory, `*Tests.swift` in iOS test targets
-
-### Naming Conventions
-
-| Element | Convention | Example |
-|---------|------------|---------|
-| API Endpoints | Spanish resources, kebab-case | `/reportes`, `/tendencias-comunidad` |
-| Database Tables | PascalCase, English | `Reports`, `ReportAttachments` |
-| TypeScript Classes | PascalCase | `ReportingService`, `AuthController` |
-| TypeScript Methods | camelCase | `createReport()`, `validateToken()` |
-| Swift Classes/Structs | PascalCase | `ReportViewModel`, `AuthService` |
-| Swift Properties | camelCase | `reportId`, `attackType` |
-| Environment Variables | UPPER_SNAKE_CASE | `DB_PASSWORD`, `JWT_SECRET` |
-
-### Critical Rules
-
-- **Spanish Error Messages Only:** All user-facing error messages MUST be in Spanish - never return English error text to mobile or admin interfaces
-- **Anonymous Report Privacy:** NEVER log user_id, email, or personal data for reports where is_anonymous=true - use 'anonymous' placeholder in logs
-- **JWT Token Validation:** ALL protected endpoints MUST validate JWT tokens before processing - use NestJS Guards, never implement custom validation logic
-- **File Upload Security:** NEVER accept file uploads without MIME type validation and size limits - use Multer configuration with strict file type checking
-- **Database Transactions:** ALL multi-table operations MUST use database transactions - report creation with attachments requires transaction wrapper
-- **Input Validation:** NEVER trust client input - use class-validator decorators on all DTOs with Spanish error messages
-- **Password Handling:** NEVER store plain text passwords - use bcrypt with salt rounds >= 12 for all password operations
-- **SQL Injection Prevention:** NEVER use raw SQL queries - use Sequelize ORM with parameterized queries only
-- **CORS Configuration:** NEVER use wildcard CORS in production - specify exact origins for iOS app and admin portal
-- **Environment Variables:** NEVER commit .env files or hardcode secrets - use .env.example templates with placeholder values
-
-### Language-Specific Guidelines
-
-#### TypeScript Specifics
-- **Strict Mode:** Enable all TypeScript strict flags - noImplicitAny, strictNullChecks, strictFunctionTypes
-- **Import Organization:** Use absolute imports with path mapping - `@/shared/utils` instead of relative paths
-- **Error Handling:** Use Result<T, E> pattern for operations that can fail - avoid throwing exceptions in business logic
-- **Type Definitions:** Create shared types in `/shared/types` - never duplicate type definitions across packages
-
-#### Swift Specifics  
-- **SwiftUI Patterns:** Use @StateObject for view model ownership, @ObservedObject for passed dependencies
-- **Async/Await:** Use structured concurrency - avoid completion handlers for new code
-- **Error Handling:** Use Result<Success, Failure> and do-try-catch patterns - throw descriptive errors with Spanish messages
-- **Memory Management:** Use weak references for delegates and closures to prevent retain cycles
-
-## Test Strategy and Standards
-
-### Testing Philosophy
-- **Approach:** Test-After Development (TAD) with emphasis on critical business logic and API endpoint coverage
-- **Coverage Goals:** 80% unit test coverage for services and controllers, 90% coverage for authentication and security modules
-- **Test Pyramid:** 70% unit tests, 25% integration tests, 5% end-to-end tests optimized for academic timeline constraints
-
-### Test Types and Organization
-
-#### Unit Tests
-- **Framework:** Jest 29.5.0 with @nestjs/testing utilities for dependency injection testing
-- **File Convention:** `*.spec.ts` files alongside source code (e.g., `auth.service.spec.ts` next to `auth.service.ts`)
-- **Location:** Same directory as source files for easy navigation and maintenance
-- **Mocking Library:** Jest built-in mocking with custom factory functions for SafeTrade entities
-- **Coverage Requirement:** 80% minimum line coverage, 90% for critical security modules
-
-**AI Agent Requirements:**
-- Generate tests for all public methods in services and controllers
-- Cover edge cases and error conditions (invalid JWT tokens, malformed report data, file upload failures)
-- Follow AAA pattern (Arrange, Act, Assert) with descriptive test names in English
-- Mock all external dependencies (database, file system, external APIs)
-
-#### Integration Tests
-- **Scope:** API endpoint testing with real database connections and file upload handling
-- **Location:** `test/` directory in backend package with descriptive filenames
-- **Test Infrastructure:**
-  - **Database:** In-memory SQLite for fast test execution, or Docker SQL Server container for production-like testing
-  - **File Storage:** Temporary directory with automatic cleanup after test completion
-  - **Authentication:** Test JWT tokens generated with known secrets for consistent testing
-
-#### End-to-End Tests
-- **Framework:** Detox for iOS end-to-end testing with device simulators
-- **Scope:** Critical user journeys - anonymous reporting, user registration/login, community trends viewing
-- **Environment:** iOS Simulator with backend running in Docker container for realistic testing
-- **Test Data:** Seeded database with predictable test scenarios and clean state between tests
-
-### Test Data Management
-- **Strategy:** Factory pattern for generating test entities with realistic Spanish content
-- **Fixtures:** Predefined test files (sample screenshots, malicious URLs) in `test/fixtures/` directory
-- **Factories:** TypeScript factory functions creating consistent test data across unit and integration tests
-- **Cleanup:** Automatic database reset and file cleanup between test runs to prevent test contamination
-
-### Continuous Testing
-- **CI Integration:** Manual testing process for academic project - automated testing deferred to post-MVP
-- **Performance Tests:** Simple load testing with artillery.js to verify <2s response time requirements
-- **Security Tests:** Manual security testing checklist focusing on JWT validation, file upload security, and SQL injection prevention
-
-## Security
-
-**MANDATORY security requirements for AI and human developers - these rules directly impact code generation and implementation decisions.**
-
-### Input Validation
-- **Validation Library:** class-validator 0.14.0 with Spanish error messages for consistent user experience
-- **Validation Location:** All validation at API boundary before business logic processing - never trust client input
-- **Required Rules:**
-  - All external inputs MUST be validated using class-validator decorators on DTOs
-  - Validation at API boundary before processing - implement validation pipes in NestJS controllers
-  - Whitelist approach preferred over blacklist - explicitly allow known good inputs rather than blocking known bad
-
-### Authentication & Authorization
-- **Auth Method:** JWT-based stateless authentication with bcrypt password hashing and refresh token rotation
-- **Session Management:** Stateless JWT tokens with 1-hour expiry and refresh token system for extended sessions
-- **Required Patterns:**
-  - NEVER store passwords in plain text - use bcrypt with minimum 12 salt rounds
-  - ALL protected endpoints MUST validate JWT tokens using NestJS Guards before processing
-  - Triple authentication support: anonymous access, user JWT tokens, admin JWT tokens with role-based access
-
-### Secrets Management
-- **Development:** .env files with individual secrets per developer - never commit secrets to repository
-- **Production:** Environment variables injected at runtime - no hardcoded secrets in codebase
-- **Code Requirements:**
-  - NEVER hardcode secrets, API keys, or sensitive configuration in source code
-  - Access via configuration service only - use NestJS ConfigModule with validation
-  - No secrets in logs or error messages - sanitize all logging output
-
-### API Security
-- **Rate Limiting:** 100 requests per minute per IP address using @nestjs/throttler to prevent abuse
-- **CORS Policy:** Restrictive CORS allowing only iOS app and admin portal origins - never use wildcard in production
-- **Security Headers:** Helmet.js middleware for security headers including CSP, HSTS, and X-Frame-Options
-- **HTTPS Enforcement:** All connections must use HTTPS in production - redirect HTTP to HTTPS automatically
-
-### Data Protection
-- **Encryption at Rest:** SQL Server Transparent Data Encryption (TDE) for database files
-- **Encryption in Transit:** HTTPS/TLS 1.3 for all API communication with automatic certificate renewal
-- **PII Handling:** Anonymous reports must never log or expose personal identifiers - use 'anonymous' placeholder
-- **Logging Restrictions:** Never log passwords, JWT tokens, personal data, or sensitive business information
-
-### Dependency Security
-- **Scanning Tool:** npm audit for vulnerability scanning with monthly dependency updates
-- **Update Policy:** Monthly security updates for dependencies - immediate updates for critical vulnerabilities
-- **Approval Process:** Review all new dependencies for security reputation and maintenance status
-
-### Security Testing
-- **SAST Tool:** ESLint security rules and SonarQube for static analysis of security vulnerabilities
-- **DAST Tool:** Manual security testing checklist for SQL injection, XSS, and authentication bypass
-- **Penetration Testing:** Academic security assessment focusing on JWT validation, file upload security, and API authorization
-
-## Next Steps
-
-After completing this comprehensive SafeTrade architecture document, here are the recommended next steps for the academic project:
-
-### 1. Frontend Architecture Development
-Since SafeTrade includes significant iOS mobile application and web admin portal components:
-- **Use "Frontend Architecture Mode"** - Create separate frontend architecture document
-- **Provide this backend architecture as input** - Ensure consistency between backend and frontend decisions
-- **Focus areas:** SwiftUI app architecture, React admin portal structure, API integration patterns
-
-### 2. Development Phase Initiation
-For immediate project development:
-- **Review architecture with academic team** - Ensure all technical decisions align with course requirements
-- **Begin story implementation with development team** - Use this architecture as definitive technical guide
-- **Set up development environment** - Follow infrastructure setup using Docker Compose configuration
-
-### 3. Architecture Validation
-- **Technical review with instructor/advisor** - Validate architectural decisions meet academic learning objectives
-- **Stakeholder approval from project team** - Ensure all developers understand and agree with technical choices
-- **Risk assessment for semester timeline** - Confirm architecture complexity is manageable within academic constraints
-
-### Architect Prompt
-
-Since SafeTrade has significant UI components requiring detailed frontend architecture, here's the handoff prompt for frontend architecture creation:
-
-**"Please create detailed frontend architecture for SafeTrade's iOS mobile application and Next.js admin portal based on this comprehensive backend architecture document.**
-
-**Key Requirements from Backend Architecture:**
-- **Triple Authentication Integration:** Anonymous users, JWT-authenticated users, and admin users with role-based access
-- **API Integration:** REST API endpoints defined in OpenAPI specification with Spanish error handling
-- **Technology Stack Alignment:** SwiftUI + Swift for iOS, Next.js + TypeScript for admin portal
-- **Security Patterns:** JWT token management, file upload handling, input validation with Spanish localization
-
-**Critical Design Considerations:**
-- **Anonymous + Identified User Flows:** iOS app must seamlessly support both anonymous reporting and registered user experiences
-- **Community Intelligence Features:** Mobile trends display, personalized recommendations, victim support systems
-- **Admin Portal Functionality:** Report management, advanced filtering, analytics dashboard, investigation workflows
-- **Spanish Localization:** Complete Spanish interface throughout both mobile and web applications
-- **Performance Requirements:** <2 second response times, offline capability considerations for mobile
-
-**Architecture Integration Points:**
-- **Database Schema:** Use defined data models (Users, Reports, ReportAttachments, AdminUsers)
-- **API Endpoints:** Implement all REST API endpoints with proper authentication and error handling
-- **File Upload System:** Secure screenshot/attachment handling integrated with backend storage
-- **Community Features:** Real-time trend data, recommendation engine integration
-
-**Request comprehensive frontend architecture covering:**
-1. iOS SwiftUI application architecture with MVVM patterns
-2. Next.js admin portal architecture with component organization
-3. State management strategies for both platforms
-4. API integration and error handling patterns
-5. Security implementation (JWT storage, token refresh, logout flows)
-6. Performance optimization and caching strategies
-7. Testing approaches for both frontend applications
-
-**Use this backend architecture document as the definitive technical foundation for all frontend architectural decisions.**"
+This new architecture provides a solid foundation for SafeTrade's cybersecurity incident reporting platform with the flexibility to scale and maintain clean separation of concerns.

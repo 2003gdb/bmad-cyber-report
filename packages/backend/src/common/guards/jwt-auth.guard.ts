@@ -1,8 +1,8 @@
-/* eslint-disable prettier/prettier */
 
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { AuthenticatedRequest, AccessPayload } from "../interfaces/authenticated-request";
+import { EnvValidationService } from "../config/env-validation.service";
 import { Request } from 'express';
 
 @Injectable()
@@ -20,7 +20,7 @@ export class JwtAuthGuard implements CanActivate {
 
         try {
             const payload = await this.jwtService.verifyAsync<AccessPayload>(token, {
-                secret: process.env.JWT_SECRET || 'supersecret',
+                secret: EnvValidationService.getJwtSecret(),
             });
 
             if (payload.type !== "access") {

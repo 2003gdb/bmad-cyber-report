@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 
 import { Body, Controller, Post, Get, UseGuards, Req, HttpException, HttpStatus } from "@nestjs/common";
 import { UsersService } from "./users.service";
@@ -61,7 +60,7 @@ export class UsersController {
                 const refreshToken = await this.tokenService.generateRefreshToken(userProfile);
 
                 // Don't return sensitive data
-                const { password_hash, salt, ...safeUser } = user;
+                const { password_hash: _password_hash, salt: _salt, ...safeUser } = user;
 
                 return {
                     success: true,

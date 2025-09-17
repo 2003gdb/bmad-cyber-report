@@ -23,9 +23,9 @@
 - **Web Portal:** React.js with TypeScript for type safety and developer productivity, responsive design using CSS Grid/Flexbox
 
 **Backend Technology Stack:**
-- **API Framework:** Node.js 18+ with Nest.js for rapid API development and extensive middleware ecosystem
-- **Authentication:** JWT-based token system with bcrypt password hashing and refresh token rotation for security
-- **Database ORM:** Sequelize for MySQL integration with migration support and query optimization
+- **API Framework:** Node.js 18+ with Nest.js using modular repository pattern (Controller → Service → Repository)
+- **Authentication:** Triple JWT-based token system (anonymous, user, admin) with salt-enhanced password security
+- **Database Access:** Direct MySQL queries using mysql2/promise with connection pooling for optimal performance
 
 **Database and Infrastructure:**
 - **Database:** Self-hosted MySQL 8.0+ with encrypted storage at rest and automated backup procedures
@@ -47,4 +47,12 @@
 **Spanish Localization Requirements:**
 - **Content Language:** All user interfaces, labels, messages, and content written directly in Spanish without internationalization frameworks
 - **Implementation:** Hard-coded Spanish text in UI components and database content
+- **Spanish Endpoints:** Module names and API paths use Spanish (`/reportes`, `/comunidad/tendencias`)
+- **Database Localization:** MySQL ENUM values and table names use Spanish where appropriate
 - **No Special Tools:** Standard development without i18n libraries or translation management systems
+
+**Implementation Architecture Updates:**
+- **Module Structure:** Spanish module names (ReportesModule, ComunidadModule) for incident reporting and community features
+- **Service Reuse:** AdminModule imports and reuses existing UsersService and ReportesService following DRY principles
+- **Repository Pattern:** Clean Controller → Service → Repository separation with direct MySQL queries
+- **Anonymous Access:** Friction-free reporting without authentication requirements using AnonymousAuthGuard

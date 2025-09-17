@@ -1,31 +1,39 @@
-/* eslint-disable prettier/prettier */
-
-import { Body, Controller, Get, Post, Param, UseGuards, Req, Query } from "@nestjs/common";
+import { Body, Controller, Get, Post, Param, UseGuards, Query } from "@nestjs/common";
 import { AdminService } from "./admin.service";
 import { AdminAuthGuard } from "src/common/guards/admin-auth.guard";
 import { AuthService } from "src/auth/auth.service";
-import type { AuthenticatedRequest } from "src/common/interfaces/authenticated-request";
 import { ApiBearerAuth, ApiResponse, ApiTags, ApiProperty, ApiQuery } from "@nestjs/swagger";
+import { IsEmail, IsString, IsOptional } from "class-validator";
 
 export class AdminLoginDto {
     @ApiProperty({ example: "admin@safetrade.com", required: true })
-    email: string;
+    @IsEmail({}, { message: "Ingrese un correo electrónico válido" })
+    email!: string;
 
     @ApiProperty({ example: "admin123", required: true })
-    password: string;
+    @IsString({ message: "La contraseña debe ser una cadena de texto válida" })
+    password!: string;
 }
 
 export class ReportFilterDto {
     @ApiProperty({ example: "nuevo", required: false })
+    @IsOptional()
+    @IsString()
     status?: string;
 
     @ApiProperty({ example: "email", required: false })
+    @IsOptional()
+    @IsString()
     attack_type?: string;
 
     @ApiProperty({ example: "2025-01-01", required: false })
+    @IsOptional()
+    @IsString()
     date_from?: string;
 
     @ApiProperty({ example: "2025-12-31", required: false })
+    @IsOptional()
+    @IsString()
     date_to?: string;
 }
 
@@ -50,7 +58,7 @@ export class AdminController {
     @ApiResponse({ status: 200, description: 'Lista de usuarios obtenida exitosamente' })
     @ApiResponse({ status: 401, description: 'Token de administrador requerido' })
     @ApiResponse({ status: 403, description: 'Permisos insuficientes' })
-    async getUsersList(@Req() req: AuthenticatedRequest) {
+    async getUsersList() {
         const users = await this.adminService.getAllUsers();
         return {
             success: true,
@@ -66,7 +74,7 @@ export class AdminController {
     @ApiResponse({ status: 200, description: 'Usuario obtenido exitosamente' })
     @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
     @ApiResponse({ status: 401, description: 'Token de administrador requerido' })
-    async getUserById(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    async getUserById(@Param('id') id: string) {
         const userId = parseInt(id);
         const user = await this.adminService.getUserById(userId);
 
@@ -87,7 +95,7 @@ export class AdminController {
     @UseGuards(AdminAuthGuard)
     @ApiBearerAuth()
     @ApiResponse({ status: 200, description: 'Estadísticas del dashboard obtenidas exitosamente' })
-    async getDashboard(@Req() req: AuthenticatedRequest) {
+    async getDashboard() {
         const stats = await this.adminService.getDashboardStats();
         return {
             success: true,
@@ -103,13 +111,13 @@ export class AdminController {
     @ApiQuery({ name: 'date_from', required: false })
     @ApiQuery({ name: 'date_to', required: false })
     @ApiResponse({ status: 200, description: 'Lista de reportes obtenida exitosamente' })
-    async getReportes(@Query() filters: ReportFilterDto, @Req() req: AuthenticatedRequest) {
+    async getReportes(@Query() filters: ReportFilterDto) {
         const reports = await this.adminService.getFilteredReports(filters);
         return {
             success: true,
             message: "Lista de reportes obtenida exitosamente",
             reportes: reports,
-            total: reports.length
+            total: (reports as unknown[]).length
         };
     }
 }

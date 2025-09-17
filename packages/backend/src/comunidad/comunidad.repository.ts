@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 
 import { Injectable } from "@nestjs/common";
 import { DbService } from "src/db/db.service";
@@ -117,7 +116,7 @@ export class ComunidadRepository {
         };
     }
 
-    async getSimilarReports(attackType: string, impactLevel: string, limit: number = 5) {
+    async getSimilarReports(attackType: string, impactLevel: string, limit: number = 5): Promise<unknown[]> {
         const sql = `
             SELECT
                 id,
@@ -133,7 +132,7 @@ export class ComunidadRepository {
             LIMIT ?
         `;
         const [rows] = await this.db.getPool().query(sql, [attackType, impactLevel, limit]);
-        return rows;
+        return rows as unknown[];
     }
 
     async getTopSuspiciousOrigins(days: number = 30, limit: number = 10) {

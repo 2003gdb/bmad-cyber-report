@@ -1,5 +1,3 @@
-/* eslint-disable prettier/prettier */
-
 import { Injectable } from "@nestjs/common";
 import { DbService } from "src/db/db.service";
 
@@ -22,7 +20,7 @@ export class UsersRepository{
         const sql = `INSERT INTO users (email, name, password_hash, salt)
                      VALUES (?, ?, ?, ?)`;
         const [result] = await this.db.getPool().query(sql, [email, name, password_hash, salt]);
-        const insertResult = result as any;
+        const insertResult = result as { insertId: number };
 
         // Return the created user
         return this.findById(insertResult.insertId);
@@ -61,7 +59,7 @@ export class UsersRepository{
     async deleteUser(id: number): Promise<boolean> {
         const sql = `DELETE FROM users WHERE id = ?`;
         const [result] = await this.db.getPool().query(sql, [id]);
-        const deleteResult = result as any;
+        const deleteResult = result as { affectedRows: number };
         return deleteResult.affectedRows > 0;
     }
 

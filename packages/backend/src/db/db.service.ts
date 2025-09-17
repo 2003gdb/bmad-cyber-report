@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { createPool, Pool } from 'mysql2/promise';

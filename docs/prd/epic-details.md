@@ -123,9 +123,7 @@ so that reporting incidents feels fast, familiar, and trustworthy.
 1. Native iOS navigation patterns and UI components throughout app
 2. SwiftUI implementation for smooth animations and iOS-native feel
 3. Haptic feedback for form completion and important user actions
-4. iOS accessibility compliance with VoiceOver and accessibility features
-5. Performance optimization for smooth operation on older iPhone models
-6. Spanish language interface throughout all mobile app elements
+4. Spanish language interface throughout all mobile app elements
 
 ### Story 3.2: Streamlined Reporting Workflow
 

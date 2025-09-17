@@ -1,5 +1,3 @@
-/* eslint-disable prettier/prettier */
-
 import { Injectable } from "@nestjs/common";
 import { DbService } from "src/db/db.service";
 
@@ -64,7 +62,7 @@ export class AdminRepository {
         };
     }
 
-    async getFilteredReports(filters: ReportFilters) {
+    async getFilteredReports(filters: ReportFilters): Promise<unknown[]> {
         let sql = `
             SELECT
                 r.id,
@@ -86,7 +84,7 @@ export class AdminRepository {
             WHERE 1=1
         `;
 
-        const params: any[] = [];
+        const params: (string | number)[] = [];
 
         if (filters.status) {
             sql += ` AND r.status = ?`;
@@ -111,12 +109,12 @@ export class AdminRepository {
         sql += ` ORDER BY r.created_at DESC`;
 
         const [rows] = await this.db.getPool().query(sql, params);
-        return rows;
+        return rows as unknown[];
     }
 
     async updateReportStatus(reportId: number, status: string, adminNotes?: string) {
         let sql = `UPDATE reportes SET status = ?, updated_at = CURRENT_TIMESTAMP`;
-        const params = [status];
+        const params: (string | number)[] = [status];
 
         if (adminNotes) {
             sql += `, admin_notes = ?`;
@@ -124,10 +122,10 @@ export class AdminRepository {
         }
 
         sql += ` WHERE id = ?`;
-        params.push(reportId);
+        params.push(reportId.toString());
 
         const [result] = await this.db.getPool().query(sql, params);
-        const updateResult = result as any;
+        const updateResult = result as { affectedRows: number };
         return updateResult.affectedRows > 0;
     }
 
@@ -142,7 +140,7 @@ export class AdminRepository {
             WHERE r.id = ?
         `;
         const [rows] = await this.db.getPool().query(sql, [id]);
-        const result = rows as any[];
+        const result = rows as Record<string, unknown>[];
         return result[0] || null;
     }
 }

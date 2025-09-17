@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 
 import { Injectable } from "@nestjs/common";
 import { ComunidadRepository, TrendData } from "./comunidad.repository";
@@ -27,7 +26,7 @@ export class ComunidadService {
             attack_trends: this.translateAttackTypes(attackTrends),
             impact_trends: this.translateImpactLevels(impactTrends),
             time_trends: timeTrends,
-            summary: this.generateTrendsSummary(attackTrends, impactTrends, communityStats)
+            summary: this.generateTrendsSummary(attackTrends, impactTrends, communityStats as unknown as Record<string, unknown>)
         };
     }
 
@@ -58,7 +57,7 @@ export class ComunidadService {
                 impact_level: this.translateImpactLevel(reporte.impact_level)
             },
             recomendaciones: recommendations,
-            similar_reports_count: similarReports.length,
+            similar_reports_count: (similarReports as unknown[]).length,
             community_context: {
                 attack_frequency: attackTrend?.percentage || 0,
                 trend_message: this.generateTrendMessage(reporte.attack_type, attackTrend)
@@ -78,7 +77,7 @@ export class ComunidadService {
             community_overview: stats,
             recent_trends: this.translateAttackTypes(recentTrends),
             suspicious_origins: topOrigins,
-            insights: this.generateCommunityInsights(stats, recentTrends)
+            insights: this.generateCommunityInsights(stats as unknown as Record<string, unknown>, recentTrends)
         };
     }
 
@@ -118,14 +117,14 @@ export class ComunidadService {
         return translations[level] || level;
     }
 
-    private generateTrendsSummary(attackTrends: TrendData[], impactTrends: TrendData[], stats: any) {
+    private generateTrendsSummary(attackTrends: TrendData[], impactTrends: TrendData[], stats: Record<string, unknown>) {
         const topAttack = attackTrends[0];
         const topImpact = impactTrends[0];
 
         return {
             main_threat: topAttack ? this.translateAttackType(topAttack.attack_type) : 'N/A',
             main_impact: topImpact ? this.translateImpactLevel(topImpact.attack_type) : 'N/A',
-            total_reports: stats.total_reports,
+            total_reports: stats.total_reports as number,
             community_alert_level: this.calculateAlertLevel(stats, attackTrends),
             key_insight: this.generateKeyInsight(attackTrends, impactTrends, stats)
         };
@@ -145,8 +144,8 @@ export class ComunidadService {
         }
     }
 
-    private calculateAlertLevel(stats: any, trends: TrendData[]): 'bajo' | 'medio' | 'alto' {
-        const highImpactPercentage = (stats.highest_impact_count / stats.total_reports) * 100;
+    private calculateAlertLevel(stats: Record<string, unknown>, trends: TrendData[]): 'bajo' | 'medio' | 'alto' {
+        const highImpactPercentage = ((stats.highest_impact_count as number) / (stats.total_reports as number)) * 100;
         const topAttackPercentage = trends[0]?.percentage || 0;
 
         if (highImpactPercentage > 40 || topAttackPercentage > 50) {
@@ -157,28 +156,28 @@ export class ComunidadService {
         return 'bajo';
     }
 
-    private generateKeyInsight(attackTrends: TrendData[], impactTrends: TrendData[], stats: any): string {
+    private generateKeyInsight(attackTrends: TrendData[], impactTrends: TrendData[], stats: Record<string, unknown>): string {
         const topAttack = attackTrends[0];
-        const highImpactPercentage = (stats.highest_impact_count / stats.total_reports) * 100;
+        const highImpactPercentage = ((stats.highest_impact_count as number) / (stats.total_reports as number)) * 100;
 
         if (highImpactPercentage > 30) {
             return `Alerta: El ${highImpactPercentage.toFixed(1)}% de los reportes recientes involucran pérdidas financieras o de datos. La comunidad necesita mayor vigilancia.`;
         } else if (topAttack && topAttack.percentage > 40) {
             return `Tendencia dominante: Los ataques por ${this.translateAttackType(topAttack.attack_type)} representan ${topAttack.percentage}% de las amenazas comunitarias.`;
         } else {
-            return `La comunidad muestra diversidad en tipos de amenazas, con ${stats.anonymous_percentage}% de reportes anónimos indicando confianza en la plataforma.`;
+            return `La comunidad muestra diversidad en tipos de amenazas, con ${stats.anonymous_percentage as number}% de reportes anónimos indicando confianza en la plataforma.`;
         }
     }
 
-    private generateCommunityInsights(stats: any, trends: TrendData[]): string[] {
+    private generateCommunityInsights(stats: Record<string, unknown>, trends: TrendData[]): string[] {
         const insights: string[] = [];
 
-        if (stats.total_reports > 50) {
-            insights.push(`📊 Comunidad activa: ${stats.total_reports} reportes en los últimos 30 días demuestran alta participación.`);
+        if ((stats.total_reports as number) > 50) {
+            insights.push(`📊 Comunidad activa: ${stats.total_reports as number} reportes en los últimos 30 días demuestran alta participación.`);
         }
 
-        if (stats.anonymous_percentage > 70) {
-            insights.push(`🔒 Alta privacidad: ${stats.anonymous_percentage}% de usuarios prefieren reportar de forma anónima.`);
+        if ((stats.anonymous_percentage as number) > 70) {
+            insights.push(`🔒 Alta privacidad: ${stats.anonymous_percentage as number}% de usuarios prefieren reportar de forma anónima.`);
         }
 
         const topTrend = trends[0];

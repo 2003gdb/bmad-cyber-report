@@ -1,8 +1,8 @@
-/* eslint-disable prettier/prettier */
 
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException, ForbiddenException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { AuthenticatedRequest, AccessPayload, AdminProfile } from "../interfaces/authenticated-request";
+import { EnvValidationService } from "../config/env-validation.service";
 import { Request } from 'express';
 
 @Injectable()
@@ -20,7 +20,7 @@ export class AdminAuthGuard implements CanActivate {
 
         try {
             const payload = await this.jwtService.verifyAsync<AccessPayload>(token, {
-                secret: process.env.JWT_SECRET || 'supersecret',
+                secret: EnvValidationService.getJwtSecret(),
             });
 
             if (payload.type !== "admin") {

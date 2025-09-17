@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 
 import { Controller, Get, Param, Query, UseGuards, Req } from "@nestjs/common";
 import { ComunidadService } from "./comunidad.service";
@@ -107,7 +106,7 @@ export class ComunidadController {
     @Get('alerta')
     @UseGuards(AnonymousAuthGuard)
     @ApiResponse({ status: 200, description: 'Estado de alerta comunitario obtenido exitosamente' })
-    async getAlertaComunitaria(@Req() req: AuthenticatedRequest) {
+    async getAlertaComunitaria() {
         try {
             const tendencias = await this.comunidadService.getTendencias('7days');
             const analytics = await this.comunidadService.getAnalytics();
@@ -139,9 +138,11 @@ export class ComunidadController {
         }
     }
 
-    private determineAlertLevel(tendencias: any, analytics: any): 'verde' | 'amarillo' | 'rojo' {
-        const highImpactPercentage = (analytics.community_overview.highest_impact_count / analytics.community_overview.total_reports) * 100;
-        const topAttackPercentage = tendencias.attack_trends[0]?.percentage || 0;
+    private determineAlertLevel(tendencias: Record<string, unknown>, analytics: Record<string, unknown>): 'verde' | 'amarillo' | 'rojo' {
+        const analytics_overview = analytics.community_overview as Record<string, number>;
+        const highImpactPercentage = (analytics_overview.highest_impact_count / analytics_overview.total_reports) * 100;
+        const attack_trends = tendencias.attack_trends as Array<{ percentage: number }>;
+        const topAttackPercentage = attack_trends?.[0]?.percentage || 0;
 
         if (highImpactPercentage > 40 || topAttackPercentage > 60) {
             return 'rojo';
@@ -151,12 +152,12 @@ export class ComunidadController {
         return 'verde';
     }
 
-    private generateAlertMessage(level: string, tendencias: any): string {
+    private generateAlertMessage(level: string, tendencias: Record<string, unknown>): string {
         switch (level) {
             case 'rojo':
-                return `🚨 ALERTA ALTA: Se ha detectado un incremento significativo en ataques cibernéticos. ${tendencias.summary.main_threat} es la amenaza predominante. Extrema precaución.`;
+                return `🚨 ALERTA ALTA: Se ha detectado un incremento significativo en ataques cibernéticos. ${(tendencias.summary as Record<string, string>).main_threat} es la amenaza predominante. Extrema precaución.`;
             case 'amarillo':
-                return `⚠️ PRECAUCIÓN: Actividad cibernética elevada detectada. ${tendencias.summary.main_threat} requiere atención. Mantente alerta.`;
+                return `⚠️ PRECAUCIÓN: Actividad cibernética elevada detectada. ${(tendencias.summary as Record<string, string>).main_threat} requiere atención. Mantente alerta.`;
             default:
                 return `✅ ESTADO NORMAL: Actividad cibernética dentro de parámetros normales. Continúa con buenas prácticas de seguridad.`;
         }
@@ -184,6 +185,6 @@ export class ComunidadController {
                 'Comparte conocimientos de seguridad con otros'
             ]
         };
-        return recommendations[level] || recommendations['verde'];
+        return recommendations[level as keyof typeof recommendations] || recommendations['verde'];
     }
 }

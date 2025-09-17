@@ -6,12 +6,12 @@
 ```swift
 // Config.xcconfig for different environments
 // Development.xcconfig
-API_BASE_URL = http:/$()/localhost:3000/api/v1
+API_BASE_URL = http:/$()/localhost:3000
 ENABLE_LOGGING = YES
 BUILD_CONFIGURATION = DEBUG
 
 // Production.xcconfig  
-API_BASE_URL = https:/$()/api.safetrade.com/api/v1
+API_BASE_URL = https:/$()/api.safetrade.com
 ENABLE_LOGGING = NO
 BUILD_CONFIGURATION = RELEASE
 ```
@@ -138,13 +138,13 @@ module.exports = process.env.NODE_ENV === 'production'
 ### Environment Configuration
 ```bash
 # .env.local.example
-NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+NEXT_PUBLIC_API_URL=http://localhost:3000
 NEXT_PUBLIC_APP_ENV=development
 NEXTAUTH_SECRET=your-nextauth-secret-here
 NEXTAUTH_URL=http://localhost:3001
 
 # Production environment
-NEXT_PUBLIC_API_URL=https://api.safetrade.com/api/v1
+NEXT_PUBLIC_API_URL=https://api.safetrade.com
 NEXT_PUBLIC_APP_ENV=production
 NEXTAUTH_SECRET=production-secret
 NEXTAUTH_URL=https://admin.safetrade.com

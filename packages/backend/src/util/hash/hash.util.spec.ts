@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 
 import { generateSalt, hashPassword, verifyPassword } from './hash.util';
 

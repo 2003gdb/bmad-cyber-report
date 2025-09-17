@@ -1,11 +1,14 @@
-/* eslint-disable prettier/prettier */
 
 import { Injectable } from "@nestjs/common";
 import { ReportesRepository, CreateReporteData, Reporte } from "./reportes.repository";
+import { AdjuntosRepository, CreateAdjuntoData, ReporteAdjunto } from "./adjuntos.repository";
 
 @Injectable()
 export class ReportesService {
-    constructor(private readonly reportesRepository: ReportesRepository) {}
+    constructor(
+        private readonly reportesRepository: ReportesRepository,
+        private readonly adjuntosRepository: AdjuntosRepository
+    ) {}
 
     async createReporte(reporteData: CreateReporteData): Promise<Reporte | null> {
         // Validate required fields
@@ -158,5 +161,32 @@ export class ReportesService {
         }
 
         return support;
+    }
+
+    // Attachment management methods
+    async addAttachment(attachmentData: CreateAdjuntoData): Promise<ReporteAdjunto | null> {
+        // Validate that the report exists
+        const report = await this.reportesRepository.findById(attachmentData.reporte_id);
+        if (!report) {
+            throw new Error('Reporte no encontrado');
+        }
+
+        return this.adjuntosRepository.createAdjunto(attachmentData);
+    }
+
+    async getReportAttachments(reporteId: number): Promise<ReporteAdjunto[]> {
+        return this.adjuntosRepository.findByReporteId(reporteId);
+    }
+
+    async deleteAttachment(attachmentId: number): Promise<boolean> {
+        return this.adjuntosRepository.deleteAdjunto(attachmentId);
+    }
+
+    async getAttachmentById(id: number): Promise<ReporteAdjunto | null> {
+        return this.adjuntosRepository.findById(id);
+    }
+
+    async getAttachmentStats() {
+        return this.adjuntosRepository.getAdjuntoStats();
     }
 }

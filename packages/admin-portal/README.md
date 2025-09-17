@@ -42,7 +42,7 @@ Portal de administración web para la plataforma SafeTrade de reportes de cibers
 
 ```bash
 # API Backend
-NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+NEXT_PUBLIC_API_URL=http://localhost:3000
 
 # Aplicación  
 NEXT_PUBLIC_APP_NAME=SafeTrade Admin Portal

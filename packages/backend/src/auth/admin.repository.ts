@@ -1,5 +1,3 @@
-/* eslint-disable prettier/prettier */
-
 import { Injectable } from "@nestjs/common";
 import { DbService } from "src/db/db.service";
 import { hashPassword, verifyPassword } from "src/util/hash/hash.util";
@@ -52,7 +50,7 @@ export class AdminRepository {
 
         try {
             const [result] = await this.db.getPool().query(sql, [email, hashedPassword, salt]);
-            const insertResult = result as any;
+            const insertResult = result as { insertId: number };
             return this.findById(insertResult.insertId);
         } catch (error) {
             // Email might already exist

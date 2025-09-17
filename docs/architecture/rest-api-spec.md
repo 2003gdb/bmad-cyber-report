@@ -7,7 +7,7 @@ info:
   version: 1.0.0
   description: RESTful API for SafeTrade platform supporting anonymous and identified cybersecurity incident reporting with community intelligence features
 servers:
-  - url: http://localhost:3000/api/v1
+  - url: http://localhost:3000
     description: Local development server
 
 components:

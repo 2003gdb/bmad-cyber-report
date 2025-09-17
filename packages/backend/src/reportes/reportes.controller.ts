@@ -1,13 +1,12 @@
-/* eslint-disable prettier/prettier */
-
 import { Body, Controller, Get, Post, Param, UseGuards, Req, UseInterceptors, UploadedFiles } from "@nestjs/common";
+import type { Express } from 'express';
 import { ReportesService } from "./reportes.service";
 import { CrearReporteDto } from "./dto/crear-reporte.dto";
 import { AnonymousAuthGuard } from "src/common/guards/anonymous-auth.guard";
 import { JwtAuthGuard } from "src/common/guards/jwt-auth.guard";
 import type { AuthenticatedRequest } from "src/common/interfaces/authenticated-request";
 import { FilesInterceptor } from "@nestjs/platform-express";
-import { ApiBearerAuth, ApiResponse, ApiTags, ApiConsumes, ApiProperty } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiResponse, ApiTags, ApiConsumes } from "@nestjs/swagger";
 
 @ApiTags('Reportes de Incidentes')
 @Controller('reportes')
@@ -115,8 +114,8 @@ export class ReportesController {
             // Only show user info for identified reports and if user owns it
             user_info: reporte.is_anonymous ? null : (
                 req.user.userId === reporte.user_id?.toString() ? {
-                    email: (reporte as any).user_email,
-                    name: (reporte as any).user_name
+                    email: (reporte as Record<string, unknown>).user_email as string,
+                    name: (reporte as Record<string, unknown>).user_name as string
                 } : null
             )
         };

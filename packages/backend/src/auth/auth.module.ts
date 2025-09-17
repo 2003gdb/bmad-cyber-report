@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 
 import { Module, forwardRef } from '@nestjs/common';
 import { AuthController } from './auth.controller';

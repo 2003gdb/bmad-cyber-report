@@ -98,7 +98,7 @@ jobs:
       run: |
         cd packages/admin-portal
         cat > .env.local << EOF
-        NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1
+        NEXT_PUBLIC_API_URL=http://localhost:3000
         NODE_ENV=test
         JWT_SECRET=test_jwt_secret_key_12345
         EOF

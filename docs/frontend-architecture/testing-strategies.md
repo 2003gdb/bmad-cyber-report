@@ -355,7 +355,7 @@ import { beforeAll, afterEach, afterAll, describe, it, expect } from 'vitest'
 
 // Mock server setup
 const server = setupServer(
-  http.get('http://localhost:3000/api/v1/reports', () => {
+  http.get('http://localhost:3000/reports', () => {
     return HttpResponse.json({
       reports: [
         {
@@ -373,14 +373,14 @@ const server = setupServer(
     })
   }),
   
-  http.put('http://localhost:3000/api/v1/admin/reports/:id/status', ({ params }) => {
+  http.put('http://localhost:3000/admin/reports/:id/status', ({ params }) => {
     return HttpResponse.json({
       message: 'Estado actualizado correctamente',
       report_id: params.id,
     })
   }),
   
-  http.post('http://localhost:3000/api/v1/admin/login', async ({ request }) => {
+  http.post('http://localhost:3000/admin/login', async ({ request }) => {
     const body = await request.json() as any
     
     if (body.email === 'admin@safetrade.com' && body.password === 'password') {

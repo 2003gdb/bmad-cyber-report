@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
@@ -8,6 +7,16 @@ import { UserProfile, AdminProfile } from 'src/common/interfaces/authenticated-r
 describe('TokenService', () => {
     let service: TokenService;
     let jwtService: JwtService;
+
+    beforeAll(() => {
+        // Set test environment variable
+        process.env.JWT_SECRET = 'test-jwt-secret-for-testing-32-chars-minimum';
+    });
+
+    afterAll(() => {
+        // Clean up test environment variable
+        delete process.env.JWT_SECRET;
+    });
 
     const mockUserProfile: UserProfile = {
         id: 1,
@@ -58,7 +67,7 @@ describe('TokenService', () => {
                     profile: mockUserProfile
                 },
                 {
-                    secret: 'supersecret',
+                    secret: 'test-jwt-secret-for-testing-32-chars-minimum',
                     expiresIn: '1h'
                 }
             );
@@ -80,7 +89,7 @@ describe('TokenService', () => {
                     profile: mockAdminProfile
                 },
                 {
-                    secret: 'supersecret',
+                    secret: 'test-jwt-secret-for-testing-32-chars-minimum',
                     expiresIn: '4h'
                 }
             );
@@ -101,7 +110,7 @@ describe('TokenService', () => {
                     type: 'refresh'
                 },
                 {
-                    secret: 'supersecret',
+                    secret: 'test-jwt-secret-for-testing-32-chars-minimum',
                     expiresIn: '7d'
                 }
             );
@@ -120,7 +129,7 @@ describe('TokenService', () => {
                     type: 'admin'
                 },
                 {
-                    secret: 'supersecret',
+                    secret: 'test-jwt-secret-for-testing-32-chars-minimum',
                     expiresIn: '7d'
                 }
             );
@@ -140,7 +149,7 @@ describe('TokenService', () => {
 
             expect(payload).toEqual(mockPayload);
             expect(jwtService.verifyAsync).toHaveBeenCalledWith('valid.token', {
-                secret: 'supersecret'
+                secret: 'test-jwt-secret-for-testing-32-chars-minimum'
             });
         });
 

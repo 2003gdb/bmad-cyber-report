@@ -266,7 +266,7 @@ export function ErrorMessage({ message, onRetry }: ErrorMessageProps) {
 import axios from 'axios'
 import { useAuthStore } from '@/store/authStore'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

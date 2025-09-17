@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';

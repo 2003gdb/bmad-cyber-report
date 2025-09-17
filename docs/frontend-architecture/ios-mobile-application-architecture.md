@@ -134,7 +134,7 @@ class AuthService: ObservableObject {
 ### HTTP Client Configuration
 ```swift
 class APIService {
-    private let baseURL = "http://localhost:3000/api/v1"
+    private let baseURL = "http://localhost:3000"
     private let session: URLSession
     
     init() {

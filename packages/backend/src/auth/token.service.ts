@@ -1,8 +1,8 @@
-/* eslint-disable prettier/prettier */
 
 import { Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { UserProfile, AdminProfile } from "src/common/interfaces/authenticated-request";
+import { EnvValidationService } from "src/common/config/env-validation.service";
 
 export type AccessPayload = {
     sub: string;
@@ -31,7 +31,7 @@ export class TokenService {
             type: "access",
             profile
         } satisfies AccessPayload, {
-            secret: process.env.JWT_SECRET || "supersecret",
+            secret: EnvValidationService.getJwtSecret(),
             expiresIn: "1h"
         });
     }
@@ -42,7 +42,7 @@ export class TokenService {
             type: "admin",
             profile
         } satisfies AdminPayload, {
-            secret: process.env.JWT_SECRET || "supersecret",
+            secret: EnvValidationService.getJwtSecret(),
             expiresIn: "4h" // Longer session for admins
         });
     }
@@ -54,7 +54,7 @@ export class TokenService {
             sub: profile.id.toString(),
             type: isAdmin ? "admin" : "refresh"
         } satisfies RefreshPayload, {
-            secret: process.env.JWT_SECRET || "supersecret",
+            secret: EnvValidationService.getJwtSecret(),
             expiresIn: "7d"
         });
     }

@@ -13,7 +13,7 @@
 | **Runtime** | Node.js | 18.17.0 LTS | JavaScript runtime | LTS stability, NestJS compatibility, academic reliability |
 | **Backend Framework** | NestJS | 10.2.0 | Enterprise API framework | Modular architecture, DI, TypeScript-first, scalable patterns |
 | **Database** | MySQL | 8.0+ | Local development database | Open source, reliable, widely supported for academic projects |
-| **Database ORM** | Sequelize | 6.32.0 | MySQL integration | Migration support, TypeScript definitions, query optimization |
+| **Database Access** | mysql2/promise | 3.14.3 | Direct MySQL queries | Performance optimization, connection pooling, no ORM overhead |
 | **Authentication** | JWT + bcrypt + crypto | jsonwebtoken@9.0.0, bcrypt@5.1.0, crypto (Node.js built-in) | Token-based auth with salt-enhanced security | Stateless sessions, anonymous + identified flows support, individual user salts |
 | **iOS Framework** | SwiftUI | iOS 14+ | Native iOS development | Declarative UI, modern iOS patterns, starter template choice |
 | **iOS Language** | Swift | 5.8+ | iOS development language | Native performance, type safety, Apple ecosystem integration |
@@ -58,3 +58,24 @@ NODE_ENV=development
 PORT=3000
 API_PREFIX=api/v1
 ```
+
+## Implementation Architecture
+
+**Database Strategy:**
+- **Direct MySQL Queries**: Using `mysql2/promise` with connection pooling
+- **Repository Pattern**: Controller → Service → Repository for clean separation
+- **No ORM Overhead**: Direct SQL queries for optimal performance
+- **MySQL Connection Pool**: Global database service for efficient connection management
+
+**Authentication Implementation:**
+- **Triple Authentication**: Anonymous, JWT user tokens, JWT admin tokens
+- **Spanish Endpoints**: `/reportes`, `/comunidad/tendencias` for localization
+- **Module Reuse**: AdminModule imports and reuses existing services
+
+**Spanish Localization:**
+- **Module Names**: `reportes/`, `comunidad/` for incident reporting and community features
+- **Database Enums**: Spanish values for `attack_type`, `impact_level`, `status`
+- **API Responses**: All error messages and responses in Spanish
+- **DTOs**: Spanish validation messages throughout
+
+This tech stack supports SafeTrade's cybersecurity incident reporting requirements with performance-optimized MySQL queries and comprehensive Spanish localization.
