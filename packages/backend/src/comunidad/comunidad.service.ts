@@ -30,41 +30,6 @@ export class ComunidadService {
         };
     }
 
-    async getRecomendaciones(reporteId: number) {
-        const reporte = await this.reportesService.getReporteById(reporteId);
-        if (!reporte) {
-            return { error: "Reporte no encontrado" };
-        }
-
-        // Get personalized recommendations
-        const recommendations = await this.reportesService.generateRecommendations(reporte);
-
-        // Get similar reports for community context
-        const similarReports = await this.comunidadRepository.getSimilarReports(
-            reporte.attack_type,
-            reporte.impact_level,
-            5
-        );
-
-        // Get general community trends related to this attack type
-        const relatedTrends = await this.comunidadRepository.getAttackTypeTrends(30);
-        const attackTrend = relatedTrends.find(trend => trend.attack_type === reporte.attack_type);
-
-        return {
-            reporte_info: {
-                id: reporte.id,
-                attack_type: this.translateAttackType(reporte.attack_type),
-                impact_level: this.translateImpactLevel(reporte.impact_level)
-            },
-            recomendaciones: recommendations,
-            similar_reports_count: (similarReports as unknown[]).length,
-            community_context: {
-                attack_frequency: attackTrend?.percentage || 0,
-                trend_message: this.generateTrendMessage(reporte.attack_type, attackTrend)
-            },
-            prevention_tips: this.getPreventionTips(reporte.attack_type)
-        };
-    }
 
     async getAnalytics() {
         const [stats, recentTrends, topOrigins] = await Promise.all([
@@ -227,4 +192,5 @@ export class ComunidadService {
             'Desconfía de comunicaciones no solicitadas'
         ];
     }
+
 }

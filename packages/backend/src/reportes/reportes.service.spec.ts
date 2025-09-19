@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReportesService } from './reportes.service';
 import { ReportesRepository, CreateReporteData, Reporte } from './reportes.repository';
-import { AdjuntosRepository, CreateAdjuntoData, ReporteAdjunto } from './adjuntos.repository';
+import { AdjuntosRepository, ReporteAdjunto } from './adjuntos.repository';
 
 describe('ReportesService', () => {
   let service: ReportesService;
   let reportesRepository: jest.Mocked<ReportesRepository>;
-  let adjuntosRepository: jest.Mocked<AdjuntosRepository>;
+  let _adjuntosRepository: jest.Mocked<AdjuntosRepository>;
 
   const mockReporte: Reporte = {
     id: 1,
@@ -26,7 +26,7 @@ describe('ReportesService', () => {
     updated_at: new Date(),
   };
 
-  const mockAdjunto: ReporteAdjunto = {
+  const _mockAdjunto: ReporteAdjunto = {
     id: 1,
     reporte_id: 1,
     file_path: '/uploads/test-file.png',
@@ -65,7 +65,7 @@ describe('ReportesService', () => {
 
     service = module.get<ReportesService>(ReportesService);
     reportesRepository = module.get(ReportesRepository);
-    adjuntosRepository = module.get(AdjuntosRepository);
+    _adjuntosRepository = module.get(AdjuntosRepository);
   });
 
   afterEach(() => {
@@ -229,6 +229,53 @@ describe('ReportesService', () => {
       expect(recommendations).toContain('Verifica siempre la dirección del remitente antes de abrir enlaces o archivos adjuntos');
       expect(recommendations).toContain('Contacta inmediatamente a tu banco para reportar el incidente');
     });
+
+    it('should generate additional recommendations when suspicious URL is present', async () => {
+      const reportWithUrl = {
+        ...mockReporte,
+        suspicious_url: 'https://fake-bank.com/login',
+      };
+
+      const recommendations = await service.generateRecommendations(reportWithUrl);
+
+      expect(recommendations).toContain('Evita hacer clic en la URL reportada y comparte esta información con tu red');
+      expect(recommendations).toContain('Considera reportar la URL maliciosa a servicios de seguridad como Google Safe Browsing');
+    });
+
+    it('should generate message content recommendations', async () => {
+      const reportWithMessage = {
+        ...mockReporte,
+        message_content: 'Tu cuenta será bloqueada, responde URGENTE',
+      };
+
+      const recommendations = await service.generateRecommendations(reportWithMessage);
+
+      expect(recommendations).toContain('Guarda el contenido del mensaje como evidencia para futuras investigaciones');
+      expect(recommendations).toContain('Desconfía de mensajes que crean sensación de urgencia - es una táctica común de atacantes');
+    });
+
+    it('should generate urgency recommendations for urgent message content', async () => {
+      const reportWithUrgentMessage = {
+        ...mockReporte,
+        message_content: 'Acción INMEDIATA requerida para tu cuenta',
+      };
+
+      const recommendations = await service.generateRecommendations(reportWithUrgentMessage);
+
+      expect(recommendations).toContain('Desconfía de mensajes que crean sensación de urgencia - es una táctica común de atacantes');
+    });
+
+    it('should not generate urgency recommendations for non-urgent message content', async () => {
+      const reportWithNormalMessage = {
+        ...mockReporte,
+        message_content: 'Mensaje normal sin palabras de urgencia',
+      };
+
+      const recommendations = await service.generateRecommendations(reportWithNormalMessage);
+
+      expect(recommendations).toContain('Guarda el contenido del mensaje como evidencia para futuras investigaciones');
+      expect(recommendations).not.toContain('Desconfía de mensajes que crean sensación de urgencia - es una táctica común de atacantes');
+    });
   });
 
   describe('getVictimSupport', () => {
@@ -263,52 +310,4 @@ describe('ReportesService', () => {
     });
   });
 
-  describe('addAttachment', () => {
-    const attachmentData: CreateAdjuntoData = {
-      reporte_id: 1,
-      file_path: '/uploads/test-file.png',
-      file_hash: 'abc123',
-    };
-
-    it('should add attachment successfully when report exists', async () => {
-      reportesRepository.findById.mockResolvedValue(mockReporte);
-      adjuntosRepository.createAdjunto.mockResolvedValue(mockAdjunto);
-
-      const result = await service.addAttachment(attachmentData);
-
-      expect(result).toEqual(mockAdjunto);
-      expect(reportesRepository.findById).toHaveBeenCalledWith(1);
-      expect(adjuntosRepository.createAdjunto).toHaveBeenCalledWith(attachmentData);
-    });
-
-    it('should throw error when report does not exist', async () => {
-      reportesRepository.findById.mockResolvedValue(null);
-
-      await expect(service.addAttachment(attachmentData))
-        .rejects.toThrow('Reporte no encontrado');
-    });
-  });
-
-  describe('getReportAttachments', () => {
-    it('should return attachments for report', async () => {
-      const mockAttachments = [mockAdjunto];
-      adjuntosRepository.findByReporteId.mockResolvedValue(mockAttachments);
-
-      const result = await service.getReportAttachments(1);
-
-      expect(result).toEqual(mockAttachments);
-      expect(adjuntosRepository.findByReporteId).toHaveBeenCalledWith(1);
-    });
-  });
-
-  describe('deleteAttachment', () => {
-    it('should delete attachment successfully', async () => {
-      adjuntosRepository.deleteAdjunto.mockResolvedValue(true);
-
-      const result = await service.deleteAttachment(1);
-
-      expect(result).toBe(true);
-      expect(adjuntosRepository.deleteAdjunto).toHaveBeenCalledWith(1);
-    });
-  });
 });

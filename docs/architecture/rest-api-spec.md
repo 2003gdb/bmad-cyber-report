@@ -168,13 +168,16 @@ paths:
     post:
       tags: [Reporting]
       summary: Submit incident report (anonymous or identified)
+      description: |
+        Accepts JSON-only format for text-based incident reporting.
+        File upload functionality has been removed to simplify the system.
       security:
         - BearerAuth: []
         - {} # Anonymous access allowed
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
               type: object
               required: [attack_type, incident_date, attack_origin, impact_level]
@@ -203,11 +206,6 @@ paths:
                   enum: [ninguno, robo_datos, robo_dinero, cuenta_comprometida]
                 description:
                   type: string
-                attachments:
-                  type: array
-                  items:
-                    type: string
-                    format: binary
       responses:
         '201':
           description: Report submitted successfully
@@ -226,7 +224,7 @@ paths:
                     type: object
                     nullable: true
         '400':
-          description: Invalid report data or file upload error
+          description: Invalid report data
     
     get:
       tags: [Reporting]

@@ -4,6 +4,7 @@ struct ReportSubmissionView: View {
     let isAnonymous: Bool
     @StateObject private var viewModel: ReportingViewModel
     @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) private var dismiss
 
     init(isAnonymous: Bool = false) {
         self.isAnonymous = isAnonymous
@@ -40,12 +41,17 @@ struct ReportSubmissionView: View {
             .navigationTitle("Reportar Incidente")
             .navigationBarTitleDisplayMode(.large)
         }
-        .alert("Éxito", isPresented: $viewModel.showingSuccessAlert) {
-            Button("Aceptar") {
-                presentationMode.wrappedValue.dismiss()
+        .fullScreenCover(isPresented: $viewModel.showingSuccessAlert) {
+            if let attackType = viewModel.submittedAttackType {
+                RecommendationsView(attackType: attackType) {
+                    // First dismiss the recommendations view
+                    viewModel.showingSuccessAlert = false
+                    // Then dismiss the report submission view to return to main
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
             }
-        } message: {
-            Text(viewModel.alertMessage)
         }
         .alert("Error", isPresented: $viewModel.showingErrorAlert) {
             Button("Aceptar") { }
@@ -223,13 +229,32 @@ struct ReportSubmissionView: View {
 
             // Message Content
             VStack(alignment: .leading, spacing: 8) {
-                Text("Contenido del Mensaje (Opcional)")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                HStack {
+                    Text("Contenido del Mensaje (Opcional)")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+
+                    Spacer()
+
+                    Text("\(viewModel.messageContent.count)/5000")
+                        .font(.caption)
+                        .foregroundColor(viewModel.messageContent.count > 5000 ? .red : .secondary)
+                }
 
                 TextField("Describe el mensaje o comunicación recibida...", text: $viewModel.messageContent, axis: .vertical)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .lineLimit(3...6)
+                    .onChange(of: viewModel.messageContent) { _, newValue in
+                        if newValue.count > 5000 {
+                            viewModel.messageContent = String(newValue.prefix(5000))
+                        }
+                    }
+
+                if viewModel.showValidationErrors, let error = viewModel.validateMessageContent() {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
             }
 
             // Description
@@ -244,6 +269,7 @@ struct ReportSubmissionView: View {
             }
         }
     }
+
 
     // MARK: - Submit Button
 

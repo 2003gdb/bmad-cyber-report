@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import SwiftUI
+import UIKit
 
 @MainActor
 class ReportingViewModel: ObservableObject {
@@ -24,9 +25,11 @@ class ReportingViewModel: ObservableObject {
     @Published var lastSubmittedReport: ReportSummary?
     @Published var recommendations: [String] = []
     @Published var victimSupport: VictimSupport?
+    @Published var submittedAttackType: String?
 
     // Form validation
     @Published var showValidationErrors: Bool = false
+
 
     // MARK: - Private Properties
 
@@ -111,7 +114,11 @@ class ReportingViewModel: ObservableObject {
             description: description.isEmpty ? nil : description
         )
 
-        reportingService.submitReport(request)
+        // Note: File attachments are currently disabled
+        // Always use the standard JSON-only submission
+        let publisher = reportingService.submitReport(request)
+
+        publisher
             .receive(on: DispatchQueue.main)
             .sink(
                 receiveCompletion: { [weak self] (completion: Subscribers.Completion<Error>) in
@@ -138,12 +145,15 @@ class ReportingViewModel: ObservableObject {
         lastSubmittedReport = response.reporte
         recommendations = response.recommendations ?? []
         victimSupport = response.victimSupport
+        submittedAttackType = selectedAttackType.rawValue
 
         alertMessage = response.message
+
+        // Immediately show recommendations instead of success alert
         showingSuccessAlert = true
 
         // Reset form for next report
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             self.resetForm()
         }
     }
@@ -160,10 +170,22 @@ class ReportingViewModel: ObservableObject {
 
     func validateSuspiciousUrl() -> String? {
         if !suspiciousUrl.isEmpty {
-            // Basic URL validation
-            if !suspiciousUrl.hasPrefix("http://") && !suspiciousUrl.hasPrefix("https://") {
-                return "La URL debe comenzar con http:// o https://"
+            // Length validation
+            if suspiciousUrl.count > 2048 {
+                return "La URL no puede exceder 2048 caracteres"
             }
+
+            // Basic domain validation - must contain at least one dot
+            if !suspiciousUrl.contains(".") {
+                return "La URL sospechosa debe contener al menos un dominio (ej: sitio.com)"
+            }
+        }
+        return nil
+    }
+
+    func validateMessageContent() -> String? {
+        if messageContent.count > 5000 {
+            return "El contenido del mensaje no puede exceder 5000 caracteres"
         }
         return nil
     }
@@ -183,6 +205,7 @@ class ReportingViewModel: ObservableObject {
         formatter.dateFormat = "HH:mm"
         return formatter.string(from: Date())
     }
+
 }
 
 // MARK: - Validation Error Types

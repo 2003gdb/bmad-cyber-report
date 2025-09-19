@@ -1,7 +1,7 @@
 
 import { Injectable } from "@nestjs/common";
 import { ReportesRepository, CreateReporteData, Reporte } from "./reportes.repository";
-import { AdjuntosRepository, CreateAdjuntoData, ReporteAdjunto } from "./adjuntos.repository";
+import { AdjuntosRepository } from "./adjuntos.repository";
 
 @Injectable()
 export class ReportesService {
@@ -102,6 +102,21 @@ export class ReportesService {
                 break;
         }
 
+        // Additional recommendations based on suspicious URL presence
+        if (reporte.suspicious_url) {
+            recommendations.push('Evita hacer clic en la URL reportada y comparte esta información con tu red');
+            recommendations.push('Considera reportar la URL maliciosa a servicios de seguridad como Google Safe Browsing');
+        }
+
+        // Additional recommendations based on message content
+        if (reporte.message_content) {
+            recommendations.push('Guarda el contenido del mensaje como evidencia para futuras investigaciones');
+            const messageContent = reporte.message_content.toLowerCase();
+            if (messageContent.includes('urgente') || messageContent.includes('inmediato') || messageContent.includes('inmediata')) {
+                recommendations.push('Desconfía de mensajes que crean sensación de urgencia - es una táctica común de atacantes');
+            }
+        }
+
         return recommendations;
     }
 
@@ -163,30 +178,4 @@ export class ReportesService {
         return support;
     }
 
-    // Attachment management methods
-    async addAttachment(attachmentData: CreateAdjuntoData): Promise<ReporteAdjunto | null> {
-        // Validate that the report exists
-        const report = await this.reportesRepository.findById(attachmentData.reporte_id);
-        if (!report) {
-            throw new Error('Reporte no encontrado');
-        }
-
-        return this.adjuntosRepository.createAdjunto(attachmentData);
-    }
-
-    async getReportAttachments(reporteId: number): Promise<ReporteAdjunto[]> {
-        return this.adjuntosRepository.findByReporteId(reporteId);
-    }
-
-    async deleteAttachment(attachmentId: number): Promise<boolean> {
-        return this.adjuntosRepository.deleteAdjunto(attachmentId);
-    }
-
-    async getAttachmentById(id: number): Promise<ReporteAdjunto | null> {
-        return this.adjuntosRepository.findById(id);
-    }
-
-    async getAttachmentStats() {
-        return this.adjuntosRepository.getAdjuntoStats();
-    }
 }

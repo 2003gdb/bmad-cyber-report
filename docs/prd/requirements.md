@@ -13,7 +13,7 @@
 - **FR5:** The system shall provide attack type selection (email, SMS, WhatsApp, phone call, social media, other)
 - **FR6:** The system shall enable users to register suspicious URLs with validation
 - **FR7:** The system shall allow users to copy and paste original message text
-- **FR8:** The system shall support screenshot and file attachment uploads related to the attack
+- **FR8:** ~~The system shall support screenshot and file attachment uploads related to the attack~~ **DISABLED:** File upload functionality has been removed from the current implementation to simplify the system to text-only reporting
 - **FR9:** The system shall enable users to indicate impact suffered (none, data theft, money theft, compromised account)
 - **FR10:** The system shall provide free-text description field for detailed attack information
 - **FR11:** The system shall require users to register attack origin (phone number, email address)
@@ -41,5 +41,5 @@
 **NFR3:** The system shall utilize self-hosted infrastructure with MySQL database providing encrypted data storage and backup protocols
 **NFR4:** The system shall implement JWT-based authentication system with secure session management and token validation
 **NFR5:** The system shall scale to support 1,000+ registered users with 50+ weekly incident reports while maintaining performance standards
-**NFR6:** The system shall ensure secure file upload handling with malware scanning and size limitations for user safety
+**NFR6:** ~~The system shall ensure secure file upload handling with malware scanning and size limitations for user safety~~ **N/A:** File upload functionality has been disabled. System operates as secure text-only reporting platform
 **NFR7:** The system shall maintain data privacy compliance with secure handling of personal information and company data separation

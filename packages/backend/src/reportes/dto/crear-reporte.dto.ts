@@ -1,6 +1,6 @@
 
 import { ApiProperty } from "@nestjs/swagger";
-import { IsString, IsOptional, IsBoolean, IsDateString, IsIn } from "class-validator";
+import { IsString, IsOptional, IsBoolean, IsDateString, IsIn, MaxLength, ValidateIf, Matches } from "class-validator";
 
 export class CrearReporteDto {
     @ApiProperty({
@@ -38,6 +38,7 @@ export class CrearReporteDto {
     })
     @IsOptional()
     @IsString({ message: "La hora debe ser una cadena válida" })
+    @Matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/, { message: "La hora debe tener formato HH:MM o HH:MM:SS" })
     incident_time?: string;
 
     @ApiProperty({
@@ -54,16 +55,20 @@ export class CrearReporteDto {
         required: false
     })
     @IsOptional()
+    @ValidateIf((o) => o.suspicious_url && o.suspicious_url.length > 0)
     @IsString({ message: "La URL sospechosa debe ser una cadena válida" })
+    @Matches(/^.+\..+$/, { message: "La URL sospechosa debe contener al menos un dominio (ej: sitio.com)" })
+    @MaxLength(2048, { message: "La URL no puede exceder 2048 caracteres" })
     suspicious_url?: string;
 
     @ApiProperty({
         example: "Recibí un correo que decía que mi cuenta bancaria sería bloqueada...",
-        description: "Contenido original del mensaje del atacante",
+        description: "Contenido original del mensaje del atacante (máximo 5000 caracteres)",
         required: false
     })
     @IsOptional()
     @IsString({ message: "El contenido del mensaje debe ser una cadena válida" })
+    @MaxLength(5000, { message: "El contenido del mensaje no puede exceder 5000 caracteres" })
     message_content?: string;
 
     @ApiProperty({

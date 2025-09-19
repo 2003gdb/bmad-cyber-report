@@ -17,6 +17,7 @@ export interface CommunityStats {
     anonymous_percentage: number;
 }
 
+
 @Injectable()
 export class ComunidadRepository {
     constructor(private readonly db: DbService) {}
@@ -152,4 +153,5 @@ export class ComunidadRepository {
         const [rows] = await this.db.getPool().query(sql, [days, limit]);
         return rows;
     }
+
 }

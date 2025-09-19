@@ -44,6 +44,9 @@
 ## ReportAttachment Model
 **Purpose:** File uploads (screenshots, evidence) associated with incident reports
 
+**⚠️ IMPLEMENTATION STATUS: DISABLED**
+The file upload functionality has been removed from the current implementation. The database schema is preserved for potential future reactivation, but no file processing occurs in the application layer.
+
 **Key Attributes:**
 - id: INT AUTO_INCREMENT (Primary Key) - Unique attachment identifier
 - reporte_id: INT (Foreign Key) - Links to parent Report
@@ -53,6 +56,8 @@
 
 **Relationships:**
 - Many-to-One with Report
+
+**Current State:** Database table exists but is unused. Application operates as text-only reporting system.
 
 ## AdminUser Model
 **Purpose:** Administrative portal access for SafeTrade company users

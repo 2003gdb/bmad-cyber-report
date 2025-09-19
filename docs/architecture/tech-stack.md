@@ -21,7 +21,6 @@
 | **Admin Language** | TypeScript | 5.2.0 | Admin portal development | Type safety, consistent with backend, developer productivity |
 | **Testing Framework** | Jest + Supertest | jest@29.5.0, supertest@6.3.0 | Backend testing | NestJS integration, API testing, academic project standard |
 | **iOS Testing** | XCTest | Built-in | iOS unit testing | Native iOS testing framework, integrated with Xcode |
-| **File Upload** | Multer | 1.4.5 | Secure file handling | NestJS compatibility, validation support, local storage |
 | **Validation** | class-validator | 0.14.0 | Input validation | Decorator-based validation, TypeScript integration, security focus |
 | **Logging** | Winston | 3.9.0 | Application logging | Structured logging, multiple transports, NestJS integration |
 | **Development Tools** | ESLint + Prettier | eslint@8.44.0, prettier@3.0.0 | Code quality | Consistent formatting, error prevention, team collaboration |
@@ -76,5 +75,11 @@ PORT=3000
 - **Database Enums**: Spanish values for `attack_type`, `impact_level`, `status`
 - **API Responses**: All error messages and responses in Spanish
 - **DTOs**: Spanish validation messages throughout
+
+**API Communication Standards:**
+- **Hybrid Protocol**: JSON for data-only endpoints, multipart/form-data for file uploads
+- **JSON Endpoints**: Authentication, data retrieval, text-only submissions use application/json
+- **File Upload Endpoints**: Report submissions with attachments use multipart/form-data for efficiency
+- **Consistent Response Format**: All endpoints return standardized JSON responses regardless of request type
 
 This tech stack supports SafeTrade's cybersecurity incident reporting requirements with performance-optimized MySQL queries and comprehensive Spanish localization.

@@ -1,5 +1,5 @@
 
-import { Controller, Get, Param, Query, UseGuards, Req } from "@nestjs/common";
+import { Controller, Get, Query, UseGuards, Req } from "@nestjs/common";
 import { ComunidadService } from "./comunidad.service";
 import { AnonymousAuthGuard } from "src/common/guards/anonymous-auth.guard";
 import type { AuthenticatedRequest } from "src/common/interfaces/authenticated-request";
@@ -40,42 +40,6 @@ export class ComunidadController {
         }
     }
 
-    @Get('recomendaciones/:reporteId')
-    @UseGuards(AnonymousAuthGuard) // Allow access for both anonymous and authenticated users
-    @ApiResponse({ status: 200, description: 'Recomendaciones personalizadas obtenidas exitosamente' })
-    @ApiResponse({ status: 404, description: 'Reporte no encontrado' })
-    async getRecomendaciones(
-        @Param('reporteId') reporteId: string,
-        @Req() req: AuthenticatedRequest
-    ) {
-        try {
-            const recomendaciones = await this.comunidadService.getRecomendaciones(parseInt(reporteId));
-
-            if ('error' in recomendaciones) {
-                return {
-                    success: false,
-                    message: recomendaciones.error
-                };
-            }
-
-            return {
-                success: true,
-                message: "Recomendaciones generadas exitosamente",
-                data: recomendaciones,
-                context: {
-                    user_type: req.user.userId === "anonymous" ? "anónimo" : "registrado",
-                    generated_at: new Date().toISOString()
-                }
-            };
-
-        } catch (error) {
-            return {
-                success: false,
-                message: "Error al generar recomendaciones",
-                error: process.env.NODE_ENV === 'development' ? error : undefined
-            };
-        }
-    }
 
     @Get('analytics')
     @UseGuards(AnonymousAuthGuard) // Community analytics available to all

@@ -137,7 +137,7 @@ describe('ReportesRepository', () => {
       const result = await repository.createReporte(reporteData);
 
       expect(result).toBeNull();
-      expect(consoleSpy).toHaveBeenCalledWith('Error creating reporte:', expect.any(Error));
+      expect(consoleSpy).toHaveBeenCalledWith('❌ Error creating reporte:', expect.any(Error));
 
       consoleSpy.mockRestore();
     });

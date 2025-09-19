@@ -196,7 +196,7 @@ class APIService: ObservableObject {
 
 **Specialized Services:**
 - **AuthenticationService**: Login, register, token management
-- **ReportingService**: Report submission, file upload, history retrieval
+- **ReportingService**: Report submission, history retrieval
 - **APIService**: Base HTTP client with authentication
 
 **API Endpoint Mapping:**
@@ -212,7 +212,7 @@ GET /reportes/user/mis-reportes → ReportingService.getUserReports()
 
 // Community Endpoints (Spanish)
 GET /comunidad/tendencias → CommunityService.getTrends()
-GET /comunidad/recomendaciones → CommunityService.getRecommendations()
+Local hardcoded recommendations → CommunityService.getRecommendations()
 ```
 
 ## iOS Data Models
@@ -424,7 +424,7 @@ Text("Tu reporte ayuda a proteger a toda la comunidad")
 
 **ReportSubmissionView:**
 - **Purpose**: Core incident reporting interface
-- **Features**: Attack type selection, impact assessment, file upload
+- **Features**: Attack type selection, impact assessment
 - **Validation**: Real-time form validation with Spanish messages
 - **Submission**: Async report submission with progress indicators
 
@@ -441,9 +441,9 @@ Text("Tu reporte ayuda a proteger a toda la comunidad")
 - **Security**: Keychain integration and automatic token refresh
 
 **ReportingService:**
-- **Responsibilities**: Report submission, file upload, user report history
+- **Responsibilities**: Report submission, user report history
 - **Architecture**: Service layer with API integration and error handling
-- **Features**: Multipart form data support, Spanish response handling
+- **Features**: JSON-only API communication, Spanish response handling
 
 **APIService:**
 - **Responsibilities**: Base HTTP client with authentication

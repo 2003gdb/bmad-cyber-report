@@ -166,7 +166,6 @@ The SafeTrade backend has been successfully restructured with the following Span
 
 ### Community Intelligence (Spanish Module Names)
 - `GET /comunidad/tendencias` - Community threat trends with Spanish translations
-- `GET /comunidad/recomendaciones/:reporteId` - Personalized security recommendations
 - `GET /comunidad/analytics` - Community analytics and insights
 - `GET /comunidad/alerta` - Community alert status
 

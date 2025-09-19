@@ -1,28 +1,25 @@
-import { Body, Controller, Get, Post, Param, UseGuards, Req, UseInterceptors, UploadedFiles } from "@nestjs/common";
-import type { Express } from 'express';
+import { Body, Controller, Get, Post, Param, UseGuards, Req } from "@nestjs/common";
 import { ReportesService } from "./reportes.service";
 import { CrearReporteDto } from "./dto/crear-reporte.dto";
 import { AnonymousAuthGuard } from "src/common/guards/anonymous-auth.guard";
 import { JwtAuthGuard } from "src/common/guards/jwt-auth.guard";
 import type { AuthenticatedRequest } from "src/common/interfaces/authenticated-request";
-import { FilesInterceptor } from "@nestjs/platform-express";
-import { ApiBearerAuth, ApiResponse, ApiTags, ApiConsumes } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiResponse, ApiTags } from "@nestjs/swagger";
 
 @ApiTags('Reportes de Incidentes')
 @Controller('reportes')
 export class ReportesController {
-    constructor(private readonly reportesService: ReportesService) {}
+    constructor(
+        private readonly reportesService: ReportesService
+    ) {}
 
     @Post()
     @UseGuards(AnonymousAuthGuard) // Allows both anonymous and authenticated users
-    @UseInterceptors(FilesInterceptor('attachments', 5)) // Allow up to 5 file attachments
-    @ApiConsumes('multipart/form-data')
     @ApiResponse({ status: 201, description: 'Reporte creado exitosamente' })
     @ApiResponse({ status: 400, description: 'Datos del reporte inválidos' })
     async createReporte(
         @Body() crearReporteDto: CrearReporteDto,
-        @Req() req: AuthenticatedRequest,
-        @UploadedFiles() files?: Express.Multer.File[]
+        @Req() req: AuthenticatedRequest
     ) {
         try {
             // Determine if user is authenticated or anonymous
@@ -53,33 +50,6 @@ export class ReportesController {
                 };
             }
 
-            // Process file attachments if provided
-            const attachments = [];
-            if (files && files.length > 0) {
-                for (const file of files) {
-                    try {
-                        const attachment = await this.reportesService.addAttachment({
-                            reporte_id: reporte.id,
-                            file_path: file.path,
-                            file_hash: file.filename // Using filename as hash for now
-                        });
-                        if (attachment) {
-                            attachments.push({
-                                id: attachment.id,
-                                filename: file.originalname,
-                                size: file.size,
-                                mimetype: file.mimetype
-                            });
-                        }
-                    } catch (attachmentError) {
-                        console.error('Error processing attachment:', attachmentError);
-                        // Continue processing other files even if one fails
-                    }
-                }
-            }
-
-            // Generate personalized recommendations
-            const recommendations = await this.reportesService.generateRecommendations(reporte);
 
             // Generate victim support if impact was suffered
             let victimSupport = null;
@@ -96,14 +66,16 @@ export class ReportesController {
                     is_anonymous: reporte.is_anonymous,
                     attack_type: reporte.attack_type,
                     incident_date: reporte.incident_date,
+                    incident_time: reporte.incident_time,
+                    attack_origin: reporte.attack_origin,
+                    suspicious_url: reporte.suspicious_url,
+                    message_content: reporte.message_content,
                     impact_level: reporte.impact_level,
+                    description: reporte.description,
                     status: reporte.status,
                     created_at: reporte.created_at
                 },
-                recommendations: recommendations,
-                victim_support: victimSupport,
-                attachments: attachments,
-                files_uploaded: files?.length || 0
+                victim_support: victimSupport
             };
 
         } catch (error) {

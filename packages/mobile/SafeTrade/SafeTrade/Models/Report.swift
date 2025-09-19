@@ -150,17 +150,12 @@ struct CreateReportResponse: Codable {
     let reporte: ReportSummary?
     let recommendations: [String]?
     let victimSupport: VictimSupport?
-    let attachments: [AttachmentInfo]?
-    let filesUploaded: Int
-
     enum CodingKeys: String, CodingKey {
         case success
         case message
         case reporte
         case recommendations
         case victimSupport = "victim_support"
-        case attachments
-        case filesUploaded = "files_uploaded"
     }
 }
 
@@ -188,9 +183,3 @@ struct VictimSupport: Codable {
     let resources: [String]
 }
 
-struct AttachmentInfo: Codable {
-    let id: Int
-    let filename: String
-    let size: Int
-    let mimetype: String
-}

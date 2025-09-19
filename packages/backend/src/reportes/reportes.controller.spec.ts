@@ -5,7 +5,6 @@ import { ReportesService } from './reportes.service';
 import { Reporte } from './reportes.repository';
 import { AuthenticatedRequest } from '../common/interfaces/authenticated-request';
 import { EnvValidationService } from '../common/config/env-validation.service';
-import type { Express } from 'express';
 
 describe('ReportesController', () => {
   let controller: ReportesController;
@@ -52,7 +51,6 @@ describe('ReportesController', () => {
             getUserReports: jest.fn(),
             generateRecommendations: jest.fn(),
             getVictimSupport: jest.fn(),
-            addAttachment: jest.fn(),
           },
         },
         {
@@ -115,13 +113,19 @@ describe('ReportesController', () => {
       expect(result.message).toBe('Reporte creado exitosamente');
       expect(result.reporte).toEqual({
         id: mockReporte.id,
+        user_id: mockReporte.user_id,
+        is_anonymous: mockReporte.is_anonymous,
         attack_type: mockReporte.attack_type,
         incident_date: mockReporte.incident_date,
+        incident_time: mockReporte.incident_time,
+        attack_origin: mockReporte.attack_origin,
+        suspicious_url: mockReporte.suspicious_url,
+        message_content: mockReporte.message_content,
         impact_level: mockReporte.impact_level,
+        description: mockReporte.description,
         status: mockReporte.status,
         created_at: mockReporte.created_at
       });
-      expect(result.recommendations).toEqual(mockRecommendations);
       expect(result.victim_support).toEqual(mockVictimSupport);
 
       expect(service.createReporte).toHaveBeenCalledWith({
@@ -198,75 +202,7 @@ describe('ReportesController', () => {
       expect(service.getVictimSupport).not.toHaveBeenCalled();
     });
 
-    it('should handle file attachments', async () => {
-      const mockFiles = [
-        {
-          originalname: 'evidence.png',
-          filename: 'uuid-evidence.png',
-          path: '/uploads/uuid-evidence.png',
-          size: 1024,
-          mimetype: 'image/png'
-        }
-      ] as Express.Multer.File[];
 
-      const mockAttachment = {
-        id: 1,
-        reporte_id: 1,
-        file_path: '/uploads/uuid-evidence.png',
-        file_hash: 'uuid-evidence.png',
-        uploaded_at: new Date()
-      };
-
-      service.createReporte.mockResolvedValue(mockReporte);
-      service.addAttachment.mockResolvedValue(mockAttachment);
-      service.generateRecommendations.mockResolvedValue(mockRecommendations);
-      service.getVictimSupport.mockResolvedValue(mockVictimSupport);
-
-      const result = await controller.createReporte(validDto, mockAuthenticatedRequest, mockFiles);
-
-      expect(result.success).toBe(true);
-      expect(result.attachments).toHaveLength(1);
-      expect(result.attachments![0]).toEqual({
-        id: mockAttachment.id,
-        filename: mockFiles[0].originalname,
-        size: mockFiles[0].size,
-        mimetype: mockFiles[0].mimetype
-      });
-      expect(result.files_uploaded).toBe(1);
-
-      expect(service.addAttachment).toHaveBeenCalledWith({
-        reporte_id: mockReporte.id,
-        file_path: mockFiles[0].path,
-        file_hash: mockFiles[0].filename
-      });
-    });
-
-    it('should continue processing other files if one attachment fails', async () => {
-      const mockFiles = [
-        { originalname: 'good.png', filename: 'uuid-good.png', path: '/uploads/uuid-good.png', size: 1024, mimetype: 'image/png' },
-        { originalname: 'bad.png', filename: 'uuid-bad.png', path: '/uploads/uuid-bad.png', size: 1024, mimetype: 'image/png' }
-      ] as Express.Multer.File[];
-
-      const mockAttachment = { id: 1, reporte_id: 1, file_path: '/uploads/uuid-good.png', file_hash: 'uuid-good.png', uploaded_at: new Date() };
-
-      service.createReporte.mockResolvedValue(mockReporte);
-      service.addAttachment
-        .mockResolvedValueOnce(mockAttachment)  // First file succeeds
-        .mockRejectedValueOnce(new Error('File processing failed'));  // Second file fails
-      service.generateRecommendations.mockResolvedValue(mockRecommendations);
-      service.getVictimSupport.mockResolvedValue(mockVictimSupport);
-
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-
-      const result = await controller.createReporte(validDto, mockAuthenticatedRequest, mockFiles);
-
-      expect(result.success).toBe(true);
-      expect(result.attachments).toHaveLength(1);  // Only successful attachment
-      expect(result.files_uploaded).toBe(2);       // Still shows total files received
-      expect(consoleSpy).toHaveBeenCalledWith('Error processing attachment:', expect.any(Error));
-
-      consoleSpy.mockRestore();
-    });
 
     it('should return error when report creation fails', async () => {
       service.createReporte.mockResolvedValue(null);

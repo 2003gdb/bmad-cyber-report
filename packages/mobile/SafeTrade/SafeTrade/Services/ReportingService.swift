@@ -64,12 +64,8 @@ class ReportingService: ObservableObject {
             .eraseToAnyPublisher()
     }
 
-    /// Submit a report with file attachments
-    func submitReportWithAttachments(_ request: CreateReportRequest, attachments: [Data]) -> AnyPublisher<CreateReportResponse, Error> {
-        // TODO: Implement file attachment support
-        // For now, submit without attachments
-        return submitReport(request)
-    }
+    // DISABLED: File attachment functionality removed
+    // Submit reports using the standard submitReport() method instead
 
     // MARK: - Report Retrieval
 

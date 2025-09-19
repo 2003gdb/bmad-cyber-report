@@ -56,11 +56,9 @@ so that my report contains comprehensive evidence for analysis and community pro
 **Acceptance Criteria:**
 1. URL input field with validation for suspicious website reporting
 2. Text area for copying and pasting original attack messages with character limit
-3. Screenshot upload functionality with file size validation and secure storage
-4. Impact assessment selection (ninguno, robo de datos, robo de dinero, cuenta comprometida)
-5. File attachment support for additional evidence with secure handling
-6. Form progress saving to prevent data loss during multi-step completion
-7. All collected data properly structured and stored in database
+3. Impact assessment selection (ninguno, robo de datos, robo de dinero, cuenta comprometida)
+4. Form progress saving to prevent data loss during multi-step completion
+5. All collected data properly structured and stored in database
 
 ## Epic 2: Community Intelligence Engine
 
@@ -111,7 +109,7 @@ so that I can take appropriate actions to minimize damage and recover from the a
 
 ## Epic 3: User Experience & Mobile Optimization
 
-**Epic Goal:** Deliver optimized native iOS application with streamlined mobile reporting workflows and enhanced user engagement features that maximize reporting adoption and community participation.
+**Epic Goal:** Deliver optimized native iOS application with streamlined mobile reporting workflows and enhanced user engagement features that maximize reporting adoption and community participation, following UX best practices for mobile development.
 
 ### Story 3.1: Native iOS Interface Enhancement
 
