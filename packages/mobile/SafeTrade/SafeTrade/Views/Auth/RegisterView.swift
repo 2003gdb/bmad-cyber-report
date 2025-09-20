@@ -129,12 +129,14 @@ struct RegisterView: View {
                     Spacer()
                 }
             }
+            .navigationTitle("Crear Cuenta")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancelar") {
                         presentationMode.wrappedValue.dismiss()
                     }
+                    .foregroundColor(.blue)
                 }
             }
         }

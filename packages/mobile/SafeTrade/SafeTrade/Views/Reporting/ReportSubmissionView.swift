@@ -40,6 +40,14 @@ struct ReportSubmissionView: View {
             }
             .navigationTitle("Reportar Incidente")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancelar") {
+                        dismiss()
+                    }
+                    .foregroundColor(.blue)
+                }
+            }
         }
         .fullScreenCover(isPresented: $viewModel.showingSuccessAlert) {
             if let attackType = viewModel.submittedAttackType {

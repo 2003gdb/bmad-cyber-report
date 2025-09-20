@@ -1,7 +1,7 @@
 import Foundation
 
 // MARK: - Trend Data Models
-struct TrendData: Codable, Identifiable {
+struct TrendData: Codable, Identifiable, Equatable {
     let attackType: String
     let count: Int
     let percentage: String // Backend returns percentage as string
@@ -80,7 +80,7 @@ struct CommunityStats: Codable {
 }
 
 // MARK: - Time Based Trends
-struct TimeBasedTrend: Codable, Identifiable {
+struct TimeBasedTrend: Codable, Identifiable, Equatable {
     let date: String
     let count: Int
 

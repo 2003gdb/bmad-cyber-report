@@ -64,10 +64,17 @@ class AuthenticationService: ObservableObject {
             self.currentUser = authResponse.user
             self.isLoading = false
 
+            // Provide success haptic feedback
+            HapticFeedback.shared.loginSuccess()
+
             return authResponse
         } catch {
             self.isLoading = false
             self.errorMessage = error.localizedDescription
+
+            // Provide error haptic feedback
+            HapticFeedback.shared.loginError()
+
             throw error
         }
     }

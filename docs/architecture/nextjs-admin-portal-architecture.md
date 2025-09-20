@@ -446,7 +446,7 @@ export default async function AnalyticsPage() {
 'use client';
 
 import { Line } from 'react-chartjs-2';
-import { Chart as ChartJS, LineElement, PointElement, LinearScale, Title, CategoryScale } from 'chart.js';
+import { Chart as ChartJS, LineElement, PointElement, LinearScale, Title, CategoryScale } from 'Recharts';
 
 ChartJS.register(LineElement, PointElement, LinearScale, Title, CategoryScale);
 

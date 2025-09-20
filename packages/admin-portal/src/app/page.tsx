@@ -1,20 +1,30 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../contexts/AuthContext';
+
 export default function Home() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading) {
+      if (isAuthenticated) {
+        router.push('/dashboard');
+      } else {
+        router.push('/login');
+      }
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  // Show loading while determining where to redirect
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-center font-mono text-sm">
-        <h1 className="text-4xl font-bold text-center mb-4">
-          SafeTrade Admin Portal
-        </h1>
-        <p className="text-center text-gray-600 mb-8">
-          Panel de Administración - Sistema de Reportes de Ciberseguridad
-        </p>
-        <div className="text-center">
-          <p>Portal de administración en desarrollo...</p>
-          <p className="text-sm text-gray-500 mt-2">
-            Funcionalidad completa se implementará en próximas historias
-          </p>
-        </div>
+      <div className="flex flex-col items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <p className="mt-4 text-gray-600">Cargando...</p>
       </div>
     </main>
-  )
+  );
 }

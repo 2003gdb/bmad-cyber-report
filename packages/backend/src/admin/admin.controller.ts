@@ -1,9 +1,9 @@
-import { Body, Controller, Get, Post, Param, UseGuards, Query } from "@nestjs/common";
+import { Body, Controller, Get, Post, Param, UseGuards, Query, HttpException, HttpStatus } from "@nestjs/common";
 import { AdminService } from "./admin.service";
 import { AdminAuthGuard } from "src/common/guards/admin-auth.guard";
 import { AuthService } from "src/auth/auth.service";
 import { ApiBearerAuth, ApiResponse, ApiTags, ApiProperty, ApiQuery } from "@nestjs/swagger";
-import { IsEmail, IsString, IsOptional } from "class-validator";
+import { IsEmail, IsString, IsOptional, MinLength } from "class-validator";
 
 export class AdminLoginDto {
     @ApiProperty({ example: "admin@safetrade.com", required: true })
@@ -13,6 +13,21 @@ export class AdminLoginDto {
     @ApiProperty({ example: "admin123", required: true })
     @IsString({ message: "La contraseña debe ser una cadena de texto válida" })
     password!: string;
+}
+
+export class AdminRegisterDto {
+    @ApiProperty({ example: "admin@safetrade.com", required: true })
+    @IsEmail({}, { message: "Ingrese un correo electrónico válido" })
+    email!: string;
+
+    @ApiProperty({ example: "securePassword123", required: true })
+    @IsString({ message: "La contraseña debe ser una cadena de texto válida" })
+    @MinLength(8, { message: "La contraseña debe tener al menos 8 caracteres" })
+    password!: string;
+
+    @ApiProperty({ example: "securePassword123", required: true })
+    @IsString({ message: "La confirmación de contraseña debe ser una cadena de texto válida" })
+    passwordConfirm!: string;
 }
 
 export class ReportFilterDto {
@@ -49,7 +64,47 @@ export class AdminController {
     @ApiResponse({ status: 200, description: 'Login de administrador exitoso' })
     @ApiResponse({ status: 401, description: 'Credenciales de administrador inválidas' })
     async adminLogin(@Body() adminLoginDto: AdminLoginDto) {
-        return this.authService.loginAdmin(adminLoginDto.email, adminLoginDto.password);
+        const result = await this.authService.loginAdmin(adminLoginDto.email, adminLoginDto.password);
+
+        if (result.error) {
+            throw new HttpException(
+                { message: result.error },
+                HttpStatus.UNAUTHORIZED
+            );
+        }
+
+        return result;
+    }
+
+    @Post('register')
+    @ApiResponse({ status: 201, description: 'Administrador registrado exitosamente' })
+    @ApiResponse({ status: 400, description: 'Datos inválidos o administrador ya existe' })
+    async adminRegister(@Body() adminRegisterDto: AdminRegisterDto) {
+        // Validate password confirmation
+        if (adminRegisterDto.password !== adminRegisterDto.passwordConfirm) {
+            throw new HttpException(
+                { message: "Las contraseñas no coinciden" },
+                HttpStatus.BAD_REQUEST
+            );
+        }
+
+        const result = await this.authService.registerAdmin(
+            adminRegisterDto.email,
+            adminRegisterDto.password
+        );
+
+        if (result.success) {
+            return {
+                success: true,
+                message: "Administrador registrado exitosamente",
+                admin: result.admin
+            };
+        } else {
+            throw new HttpException(
+                { message: result.message || "Error al registrar administrador" },
+                HttpStatus.BAD_REQUEST
+            );
+        }
     }
 
     @Get('users/list')
@@ -118,6 +173,18 @@ export class AdminController {
             message: "Lista de reportes obtenida exitosamente",
             reportes: reports,
             total: (reports as unknown[]).length
+        };
+    }
+
+    @Get('validate-token')
+    @UseGuards(AdminAuthGuard)
+    @ApiBearerAuth()
+    @ApiResponse({ status: 200, description: 'Token válido' })
+    @ApiResponse({ status: 401, description: 'Token inválido' })
+    async validateToken() {
+        return {
+            valid: true,
+            message: "Token válido"
         };
     }
 }

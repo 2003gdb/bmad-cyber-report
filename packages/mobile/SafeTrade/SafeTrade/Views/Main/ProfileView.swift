@@ -4,22 +4,18 @@ struct ProfileView: View {
     @StateObject private var authService = AuthenticationService.shared
 
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Profile Header
-                    profileHeader
+        ScrollView {
+            VStack(spacing: 24) {
+                // Profile Header
+                profileHeader
 
-                    // Profile Actions
-                    profileActions
+                // Profile Actions
+                profileActions
 
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
+                Spacer()
             }
-            .navigationTitle("Perfil")
-            .navigationBarTitleDisplayMode(.large)
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
         }
     }
 

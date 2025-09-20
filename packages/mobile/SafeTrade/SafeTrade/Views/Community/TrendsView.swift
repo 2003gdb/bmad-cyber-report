@@ -7,80 +7,90 @@ struct TrendsView: View {
     @State private var selectedImpactLevel: String?
 
     var body: some View {
-        NavigationView {
-            ScrollView {
-                LazyVStack(spacing: 20) {
-                    // Community Alert Section
-                    if let alert = viewModel.communityAlert {
-                        CommunityAlertCard(alert: alert)
-                    }
-
-                    // Period Selector
-                    PeriodSelectorCard(
-                        selectedPeriod: viewModel.selectedPeriod,
-                        onPeriodChanged: { period in
-                            viewModel.changePeriod(to: period)
-                        }
-                    )
-
-                    // Summary Stats
-                    if let stats = viewModel.communityStats {
-                        CommunityStatsCard(stats: stats)
-                    }
-
-                    // Attack Types Chart
-                    if !viewModel.topAttackTypes.isEmpty {
-                        AttackTypesChartCard(
-                            trends: viewModel.topAttackTypes,
-                            selectedType: $selectedAttackType,
-                            colorProvider: viewModel.colorForAttackType
-                        )
-                    }
-
-                    // Impact Levels Chart
-                    if !viewModel.topImpactLevels.isEmpty {
-                        ImpactLevelsChartCard(
-                            trends: viewModel.topImpactLevels,
-                            selectedLevel: $selectedImpactLevel,
-                            colorProvider: viewModel.colorForImpactLevel
-                        )
-                    }
-
-                    // Time-based Trends
-                    if !viewModel.recentTimeTrends.isEmpty {
-                        TimeBasedTrendsCard(
-                            trends: viewModel.recentTimeTrends,
-                            periodName: viewModel.periodDisplayName
-                        )
-                    }
-
-                    // Key Insights
-                    if let summary = viewModel.trendsSummary {
-                        KeyInsightsCard(summary: summary)
-                    }
+        ScrollView {
+            LazyVStack(spacing: 20) {
+                // Community Alert Section
+                if let alert = viewModel.communityAlert {
+                    CommunityAlertCard(alert: alert)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .top).combined(with: .opacity),
+                            removal: .move(edge: .top).combined(with: .opacity)
+                        ))
                 }
-                .padding()
+
+                // Period Selector
+                PeriodSelectorCard(
+                    selectedPeriod: viewModel.selectedPeriod,
+                    onPeriodChanged: { period in
+                        viewModel.changePeriod(to: period)
+                    }
+                )
+                .transition(.move(edge: .leading).combined(with: .opacity))
+
+                // Summary Stats
+                if let stats = viewModel.communityStats {
+                    CommunityStatsCard(stats: stats)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+
+                // Attack Types Chart
+                if !viewModel.topAttackTypes.isEmpty {
+                    AttackTypesChartCard(
+                        trends: viewModel.topAttackTypes,
+                        selectedType: $selectedAttackType,
+                        colorProvider: viewModel.colorForAttackType
+                    )
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                }
+
+                // Impact Levels Chart
+                if !viewModel.topImpactLevels.isEmpty {
+                    ImpactLevelsChartCard(
+                        trends: viewModel.topImpactLevels,
+                        selectedLevel: $selectedImpactLevel,
+                        colorProvider: viewModel.colorForImpactLevel
+                    )
+                    .transition(.move(edge: .leading).combined(with: .opacity))
+                }
+
+                // Time-based Trends
+                if !viewModel.recentTimeTrends.isEmpty {
+                    TimeBasedTrendsCard(
+                        trends: viewModel.recentTimeTrends,
+                        periodName: viewModel.periodDisplayName
+                    )
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+
+                // Key Insights
+                if let summary = viewModel.trendsSummary {
+                    KeyInsightsCard(summary: summary)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
             }
-            .navigationTitle("Tendencias Comunitarias")
-            .navigationBarTitleDisplayMode(.large)
-            .refreshable {
+            .animation(.easeInOut(duration: 0.5), value: viewModel.selectedPeriod)
+            .animation(.easeInOut(duration: 0.4), value: viewModel.isLoading)
+            .padding()
+        }
+        .refreshable {
+            viewModel.refreshData()
+        }
+        .overlay {
+            if viewModel.isLoading && !viewModel.hasData {
+                LoadingOverlay()
+                    .transition(.opacity.combined(with: .scale))
+                    .animation(.easeInOut(duration: 0.3), value: viewModel.isLoading)
+            }
+        }
+        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
+            Button("Reintentar") {
                 viewModel.refreshData()
             }
-            .overlay {
-                if viewModel.isLoading && !viewModel.hasData {
-                    LoadingOverlay()
-                }
+            Button("Cancelar", role: .cancel) {
+                viewModel.errorMessage = nil
             }
-            .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
-                Button("Reintentar") {
-                    viewModel.refreshData()
-                }
-                Button("Cancelar", role: .cancel) {
-                    viewModel.errorMessage = nil
-                }
-            } message: {
-                Text(viewModel.errorMessage ?? "")
-            }
+        } message: {
+            Text(viewModel.errorMessage ?? "")
         }
     }
 }
@@ -157,7 +167,10 @@ struct PeriodSelectorCard: View {
             HStack(spacing: 12) {
                 ForEach(TrendPeriod.allCases, id: \.self) { period in
                     Button(action: {
-                        onPeriodChanged(period)
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            onPeriodChanged(period)
+                        }
+                        HapticFeedback.shared.selectionChanged()
                     }) {
                         VStack(spacing: 4) {
                             Text(period.shortName)
@@ -176,7 +189,9 @@ struct PeriodSelectorCard: View {
                             selectedPeriod == period ? .white : .primary
                         )
                         .cornerRadius(8)
+                        .animation(.easeInOut(duration: 0.2), value: selectedPeriod)
                     }
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -299,7 +314,10 @@ struct AttackTypesChartCard: View {
                 }
             }
             .onTapGesture { location in
-                // Handle chart interaction if needed
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    selectedType = selectedType == nil ? trends.first?.attackType : nil
+                }
+                HapticFeedback.shared.selectionChanged()
             }
 
             // Legend
@@ -355,6 +373,12 @@ struct ImpactLevelsChartCard: View {
                 .opacity(selectedLevel == nil || selectedLevel == trend.attackType ? 1.0 : 0.5)
             }
             .frame(height: 200)
+            .onTapGesture {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    selectedLevel = selectedLevel == nil ? trends.first?.attackType : nil
+                }
+                HapticFeedback.shared.selectionChanged()
+            }
 
             // Legend
             VStack(spacing: 8) {
@@ -401,12 +425,14 @@ struct TimeBasedTrendsCard: View {
                 )
                 .foregroundStyle(.blue)
                 .symbol(.circle)
+                .interpolationMethod(.catmullRom)
 
                 AreaMark(
                     x: .value("Fecha", trend.date),
                     y: .value("Reportes", trend.count)
                 )
                 .foregroundStyle(.blue.opacity(0.3))
+                .interpolationMethod(.catmullRom)
             }
             .frame(height: 150)
             .chartYAxis {

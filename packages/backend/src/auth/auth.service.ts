@@ -3,6 +3,7 @@ import { Injectable } from "@nestjs/common";
 import { UsersService } from "src/users/users.service";
 import { TokenService } from "./token.service";
 import { AdminRepository } from "./admin.repository";
+import { generateSalt } from "src/util/hash/hash.util";
 
 @Injectable()
 export class AuthService {
@@ -83,5 +84,52 @@ export class AuthService {
             return { error: "Token de renovación inválido" };
         }
         return { error: "No se pudo renovar el token" };
+    }
+
+    async registerAdmin(email: string, password: string) {
+        try {
+            // Check if admin already exists
+            const existingAdmin = await this.adminRepository.findByEmail(email);
+            if (existingAdmin) {
+                return {
+                    success: false,
+                    message: "Ya existe un administrador con este correo electrónico"
+                };
+            }
+
+            // Generate unique salt for this admin
+            const salt = generateSalt();
+
+            // Create the admin
+            const admin = await this.adminRepository.createAdmin(email, password, salt);
+
+            if (admin) {
+                const adminProfile = {
+                    id: admin.id,
+                    email: admin.email,
+                    isAdmin: true,
+                };
+
+                return {
+                    success: true,
+                    message: "Administrador creado exitosamente",
+                    admin: {
+                        id: admin.id,
+                        email: admin.email,
+                        created_at: admin.created_at
+                    }
+                };
+            } else {
+                return {
+                    success: false,
+                    message: "Error al crear el administrador"
+                };
+            }
+        } catch (error) {
+            return {
+                success: false,
+                message: "Error interno del servidor"
+            };
+        }
     }
 }

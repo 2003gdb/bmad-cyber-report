@@ -35,6 +35,8 @@ class ReportingViewModel: ObservableObject {
 
     private let reportingService: ReportingService
     private let authService: AuthenticationService
+    private let userPreferencesService = UserPreferencesService.shared
+    private let draftManager = DraftManager.shared
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Initialization
@@ -53,6 +55,9 @@ class ReportingViewModel: ObservableObject {
             let repository = AuthenticationRepository.shared
             self.isAnonymous = !repository.hasValidToken()
         }
+
+        // Apply smart defaults on initialization
+        applySmartDefaults()
     }
 
     // MARK: - Computed Properties
@@ -96,6 +101,7 @@ class ReportingViewModel: ObservableObject {
             showValidationErrors = true
             alertMessage = "Por favor, completa todos los campos requeridos"
             showingErrorAlert = true
+            HapticFeedback.shared.formValidationError()
             return
         }
 
@@ -127,6 +133,7 @@ class ReportingViewModel: ObservableObject {
                     if case .failure(let error) = completion {
                         self?.alertMessage = "Error al enviar el reporte: \(error.localizedDescription)"
                         self?.showingErrorAlert = true
+                        HapticFeedback.shared.reportSubmissionError()
                     }
                 },
                 receiveValue: { [weak self] (response: CreateReportResponse) in
@@ -135,6 +142,7 @@ class ReportingViewModel: ObservableObject {
                     } else {
                         self?.alertMessage = response.message
                         self?.showingErrorAlert = true
+                        HapticFeedback.shared.reportSubmissionError()
                     }
                 }
             )
@@ -149,6 +157,12 @@ class ReportingViewModel: ObservableObject {
 
         alertMessage = response.message
 
+        // Record user preferences for future suggestions
+        recordUserPreferences()
+
+        // Provide success haptic feedback
+        HapticFeedback.shared.reportSubmissionSuccess()
+
         // Immediately show recommendations instead of success alert
         showingSuccessAlert = true
 
@@ -156,6 +170,52 @@ class ReportingViewModel: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             self.resetForm()
         }
+    }
+
+    private func recordUserPreferences() {
+        // Record attack type usage
+        userPreferencesService.recordAttackTypeUsage(selectedAttackType)
+
+        // Record attack origin if not empty
+        let cleanOrigin = attackOrigin.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !cleanOrigin.isEmpty {
+            userPreferencesService.recordAttackOriginUsage(cleanOrigin)
+        }
+
+        // Record impact level usage
+        userPreferencesService.recordImpactLevelUsage(selectedImpactLevel)
+
+        // Clear draft after successful submission
+        draftManager.clearDraft()
+    }
+
+    // MARK: - Draft Management
+
+    func startAutoDraftSaving() {
+        draftManager.startAutosave(for: self)
+    }
+
+    func stopAutoDraftSaving() {
+        draftManager.stopAutosave()
+    }
+
+    func loadDraftIfAvailable() -> Bool {
+        guard let draft = draftManager.loadDraft() else { return false }
+
+        draftManager.applyDraft(to: self, draft: draft)
+        return true
+    }
+
+    func saveDraftManually() {
+        draftManager.saveDraft(from: self)
+    }
+
+    func clearDraft() {
+        draftManager.clearDraft()
+    }
+
+    var hasDraft: Bool {
+        return draftManager.hasDraft
     }
 
     // MARK: - Validation Helpers
@@ -188,6 +248,66 @@ class ReportingViewModel: ObservableObject {
             return "El contenido del mensaje no puede exceder 5000 caracteres"
         }
         return nil
+    }
+
+    // MARK: - Smart Defaults
+
+    func applySmartDefaults() {
+        // Auto-populate current date and time
+        incidentDate = Date()
+        incidentTime = getCurrentTimeString()
+
+        // Set most common attack type as default (email is most common)
+        selectedAttackType = getMostCommonAttackType()
+
+        // Set reasonable default for impact level
+        selectedImpactLevel = .ninguno
+    }
+
+    func getMostCommonAttackType() -> AttackType {
+        // Return most used attack type based on user history, fallback to email
+        return userPreferencesService.getMostUsedAttackType() ?? .email
+    }
+
+    func getAttackTypeSuggestions() -> [AttackType] {
+        // Get suggestions based on user history
+        return userPreferencesService.getSuggestedAttackTypes()
+    }
+
+    func getAttackOriginSuggestions() -> [String] {
+        return userPreferencesService.getAttackOriginSuggestions(for: selectedAttackType)
+    }
+
+    func getPreferredImpactLevel() -> ImpactLevel {
+        return userPreferencesService.getPreferredImpactLevel() ?? .ninguno
+    }
+
+    func setQuickDefaults() {
+        // Quick mode defaults for streamlined workflow
+        applySmartDefaults()
+
+        // Pre-fill with reasonable device defaults
+        if attackOrigin.isEmpty {
+            attackOrigin = getDefaultAttackOrigin()
+        }
+    }
+
+    func getDefaultAttackOrigin() -> String {
+        // Provide a template/placeholder for user to modify
+        switch selectedAttackType {
+        case .email:
+            return "correo@ejemplo.com"
+        case .sms:
+            return "+52 55 1234 5678"
+        case .whatsapp:
+            return "+52 55 1234 5678"
+        case .llamada:
+            return "+52 55 1234 5678"
+        case .redesSociales:
+            return "usuario@redessociales"
+        case .otro:
+            return "origen desconocido"
+        }
     }
 
     // MARK: - Date/Time Helpers

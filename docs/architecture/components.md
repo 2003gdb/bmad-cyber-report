@@ -121,13 +121,13 @@
 **Key Components:**
 - `DashboardPage.tsx` - Main admin dashboard with metrics
 - `AnalyticsGrid.tsx` - Key performance indicators display
-- `TrendChart.tsx` - Interactive charts with Chart.js integration
+- `TrendChart.tsx` - Interactive charts with Recharts integration
 - `ReportTable.tsx` - Advanced report filtering and sorting
 - `ExportTools.tsx` - Data export functionality
 
-**Dependencies:** Chart.js, React tables, data visualization libraries
+**Dependencies:** Recharts, React tables, data visualization libraries
 
-**Technology Stack:** Next.js server components, Chart.js, Tailwind CSS, React hooks
+**Technology Stack:** Next.js server components, Recharts, Tailwind CSS, React hooks
 
 ### Admin Data Management Components
 **Responsibility:** Report management, status updates, user administration, and data export functionality
