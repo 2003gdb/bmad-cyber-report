@@ -55,6 +55,57 @@ export interface DashboardMetrics {
   recentTrends: TrendData[];
 }
 
+export interface EnhancedDashboardMetrics {
+  total_reports: number;
+  reports_today: number;
+  reports_this_week: number;
+  reports_this_month: number;
+  critical_reports: number;
+  pending_reports: number;
+  resolved_reports: number;
+  anonymous_reports: number;
+  identified_reports: number;
+  status_distribution: StatusDistribution[];
+  attack_types: AttackTypeData[];
+  impact_distribution: ImpactDistribution[];
+  weekly_trends: WeeklyTrend[];
+  monthly_trends: MonthlyTrend[];
+  response_times: ResponseTimes;
+}
+
+export interface StatusDistribution {
+  status: string;
+  count: number;
+  percentage: number;
+}
+
+export interface AttackTypeData {
+  attack_type: string;
+  count: number;
+  percentage: number;
+}
+
+export interface ImpactDistribution {
+  impact_level: string;
+  count: number;
+  percentage: number;
+}
+
+export interface WeeklyTrend {
+  week_start: string;
+  count: number;
+}
+
+export interface MonthlyTrend {
+  month: string;
+  count: number;
+}
+
+export interface ResponseTimes {
+  avg_resolution_time: number;
+  avg_first_response_time: number;
+}
+
 export interface TrendData {
   attackType: string;
   count: number;
@@ -77,4 +128,62 @@ export interface ApiError {
 export interface UpdateStatusRequest {
   status: string;
   adminNotes?: string;
+}
+
+// Advanced Search Types
+export interface SearchFilters {
+  query?: string;
+  status?: string;
+  attackType?: string;
+  impactLevel?: string;
+  isAnonymous?: boolean;
+  dateFrom?: string;
+  dateTo?: string;
+  location?: string;
+  isHighlighted?: boolean;
+}
+
+export interface SearchResult extends ReportSummary {
+  highlights?: {
+    description?: string[];
+    location?: string[];
+    attackType?: string[];
+  };
+  score?: number;
+}
+
+export interface SavedSearch {
+  id: string;
+  name: string;
+  filters: SearchFilters;
+  createdAt: string;
+}
+
+export interface SearchHistory {
+  id: string;
+  query: string;
+  filters: SearchFilters;
+  timestamp: string;
+  resultCount: number;
+}
+
+
+// Admin Notes Types
+export interface AdminNote {
+  id: number;
+  reportId: number;
+  adminId: number;
+  adminName: string;
+  content: string;
+  isTemplate: boolean;
+  templateName?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NoteTemplate {
+  id: string;
+  name: string;
+  content: string;
+  category: string;
 }

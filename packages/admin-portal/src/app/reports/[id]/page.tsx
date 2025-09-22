@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '../../../components/ProtectedRoute';
 import Header from '../../../components/Header';
+import StatusUpdateModal from '../../../components/Reports/StatusUpdateModal';
 import { adminAPIService } from '../../../services/AdminAPIService';
 import { Report, UpdateStatusRequest } from '../../../types';
 import { es } from '../../../locales/es';
@@ -18,12 +19,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
   const [report, setReport] = useState<Report | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isUpdating, setIsUpdating] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
-  const [statusUpdate, setStatusUpdate] = useState({
-    status: '',
-    adminNotes: ''
-  });
 
   const router = useRouter();
   const reportId = parseInt(params.id);
@@ -34,10 +30,6 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
       setError(null);
       const data = await adminAPIService.getReportById(reportId);
       setReport(data);
-      setStatusUpdate({
-        status: data.status,
-        adminNotes: data.adminNotes || ''
-      });
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Error al cargar el reporte');
     } finally {
@@ -51,22 +43,9 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
     }
   }, [reportId, loadReport]);
 
-  const handleStatusUpdate = async () => {
-    try {
-      setIsUpdating(true);
-      const updateData: UpdateStatusRequest = {
-        status: statusUpdate.status,
-        adminNotes: statusUpdate.adminNotes.trim() || undefined
-      };
-
-      const updatedReport = await adminAPIService.updateReportStatus(reportId, updateData);
-      setReport(updatedReport);
-      setShowStatusModal(false);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Error al actualizar el reporte');
-    } finally {
-      setIsUpdating(false);
-    }
+  const handleStatusUpdated = (updatedReport: Report) => {
+    setReport(updatedReport);
+    setShowStatusModal(false);
   };
 
   const formatDate = (dateString: string) => {
@@ -81,14 +60,14 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pendiente':
+      case 'nuevo':
         return 'bg-yellow-100 text-yellow-800';
-      case 'en_revision':
+      case 'revisado':
         return 'bg-blue-100 text-blue-800';
-      case 'resuelto':
-        return 'bg-green-100 text-green-800';
+      case 'en_investigacion':
+        return 'bg-purple-100 text-purple-800';
       case 'cerrado':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-green-100 text-green-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -319,61 +298,13 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
         </main>
 
         {/* Status Update Modal */}
-        {showStatusModal && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
-            <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Actualizar Estado del Reporte
-              </h3>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nuevo Estado
-                  </label>
-                  <select
-                    value={statusUpdate.status}
-                    onChange={(e) => setStatusUpdate(prev => ({ ...prev, status: e.target.value }))}
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  >
-                    <option value="pendiente">{es.reports.status.pendiente}</option>
-                    <option value="en_revision">{es.reports.status.en_revision}</option>
-                    <option value="resuelto">{es.reports.status.resuelto}</option>
-                    <option value="cerrado">{es.reports.status.cerrado}</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Notas Administrativas
-                  </label>
-                  <textarea
-                    value={statusUpdate.adminNotes}
-                    onChange={(e) => setStatusUpdate(prev => ({ ...prev, adminNotes: e.target.value }))}
-                    rows={4}
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                    placeholder="Agregar notas sobre la actualización del estado..."
-                  />
-                </div>
-              </div>
-
-              <div className="mt-6 flex justify-end space-x-3">
-                <button
-                  onClick={() => setShowStatusModal(false)}
-                  className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md text-sm font-medium"
-                >
-                  {es.common.cancel}
-                </button>
-                <button
-                  onClick={handleStatusUpdate}
-                  disabled={isUpdating}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
-                >
-                  {isUpdating ? es.common.loading : es.common.save}
-                </button>
-              </div>
-            </div>
-          </div>
+        {report && (
+          <StatusUpdateModal
+            isOpen={showStatusModal}
+            onClose={() => setShowStatusModal(false)}
+            onStatusUpdated={handleStatusUpdated}
+            report={report}
+          />
         )}
       </div>
     </ProtectedRoute>

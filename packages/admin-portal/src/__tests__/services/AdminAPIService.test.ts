@@ -141,14 +141,14 @@ describe('AdminAPIService', () => {
       const params = {
         page: 2,
         limit: 20,
-        status: 'pendiente',
+        status: 'nuevo',
         attackType: 'phishing'
       }
 
       const result = await adminAPIService.getReports(params)
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3000/admin/reports?page=2&limit=20&status=pendiente&attack_type=phishing',
+        'http://localhost:3000/admin/reports?page=2&limit=20&status=nuevo&attack_type=phishing',
         expect.objectContaining({
           headers: expect.objectContaining({
             'Authorization': 'Bearer test-token',
@@ -192,7 +192,7 @@ describe('AdminAPIService', () => {
         id: 1,
         attackType: 'phishing',
         description: 'Test report',
-        status: 'pendiente'
+        status: 'nuevo'
       }
 
       adminAPIService.setToken('test-token')
@@ -221,7 +221,7 @@ describe('AdminAPIService', () => {
     it('should update report status', async () => {
       const updatedReport = {
         id: 1,
-        status: 'resuelto',
+        status: 'en_investigacion',
         adminNotes: 'Resolved issue'
       }
 
@@ -233,7 +233,7 @@ describe('AdminAPIService', () => {
       })
 
       const updateData = {
-        status: 'resuelto',
+        status: 'en_investigacion',
         adminNotes: 'Resolved issue'
       }
 

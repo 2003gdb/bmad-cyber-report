@@ -9,7 +9,11 @@ interface ReportsTableProps {
   onViewReport: (id: number) => void;
 }
 
-export default function ReportsTable({ reports, isLoading, onViewReport }: ReportsTableProps) {
+export default function ReportsTable({
+  reports,
+  isLoading,
+  onViewReport
+}: ReportsTableProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
       year: 'numeric',
@@ -22,14 +26,14 @@ export default function ReportsTable({ reports, isLoading, onViewReport }: Repor
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pendiente':
+      case 'nuevo':
         return 'bg-yellow-100 text-yellow-800';
-      case 'en_revision':
+      case 'revisado':
         return 'bg-blue-100 text-blue-800';
-      case 'resuelto':
-        return 'bg-green-100 text-green-800';
+      case 'en_investigacion':
+        return 'bg-purple-100 text-purple-800';
       case 'cerrado':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-green-100 text-green-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -49,6 +53,7 @@ export default function ReportsTable({ reports, isLoading, onViewReport }: Repor
         return 'bg-gray-100 text-gray-800';
     }
   };
+
 
   if (isLoading) {
     return (

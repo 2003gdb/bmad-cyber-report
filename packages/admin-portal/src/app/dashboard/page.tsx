@@ -3,14 +3,17 @@
 import { useState, useEffect } from 'react';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import Header from '../../components/Header';
-import MetricsCard from '../../components/Dashboard/MetricsCard';
-import TrendsChart from '../../components/Dashboard/TrendsChart';
+import EnhancedMetricsCards from '../../components/Dashboard/EnhancedMetricsCards';
+import StatusChart from '../../components/Dashboard/StatusChart';
+import AttackTypesChart from '../../components/Dashboard/AttackTypesChart';
+import ImpactChart from '../../components/Dashboard/ImpactChart';
+import TrendsAnalysis from '../../components/Dashboard/TrendsAnalysis';
 import { adminAPIService } from '../../services/AdminAPIService';
-import { DashboardMetrics } from '../../types';
+import { EnhancedDashboardMetrics } from '../../types';
 import { es } from '../../locales/es';
 
 export default function DashboardPage() {
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [enhancedMetrics, setEnhancedMetrics] = useState<EnhancedDashboardMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,17 +25,15 @@ export default function DashboardPage() {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await adminAPIService.getDashboardMetrics();
-      setMetrics(data);
+
+      // Load enhanced metrics
+      const enhancedData = await adminAPIService.getEnhancedDashboardMetrics();
+      setEnhancedMetrics(enhancedData);
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Error al cargar datos');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const formatNumber = (num: number) => {
-    return num.toLocaleString('es-ES');
   };
 
   return (
@@ -82,59 +83,42 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Metrics Grid */}
+          {/* Enhanced Metrics Grid */}
           <div className="px-4 sm:px-0">
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              <MetricsCard
-                title={es.dashboard.metrics.totalReports}
-                value={isLoading ? '-' : formatNumber(metrics?.totalReports || 0)}
-                color="blue"
-                icon={
-                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                }
+            <EnhancedMetricsCards
+              metrics={enhancedMetrics}
+              isLoading={isLoading}
+            />
+          </div>
+
+          {/* Charts Grid */}
+          <div className="px-4 sm:px-0 mt-8">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <StatusChart
+                data={enhancedMetrics?.status_distribution || []}
+                isLoading={isLoading}
               />
 
-              <MetricsCard
-                title={es.dashboard.metrics.reportsToday}
-                value={isLoading ? '-' : formatNumber(metrics?.reportsToday || 0)}
-                color="green"
-                icon={
-                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                }
-              />
-
-              <MetricsCard
-                title={es.dashboard.metrics.criticalReports}
-                value={isLoading ? '-' : formatNumber(metrics?.criticalReports || 0)}
-                color="red"
-                icon={
-                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                }
-              />
-
-              <MetricsCard
-                title="Estado del Sistema"
-                value="Operativo"
-                color="green"
-                icon={
-                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                }
+              <ImpactChart
+                data={enhancedMetrics?.impact_distribution || []}
+                isLoading={isLoading}
               />
             </div>
           </div>
 
-          {/* Trends Chart */}
+          {/* Attack Types Chart */}
           <div className="px-4 sm:px-0 mt-8">
-            <TrendsChart
-              trends={metrics?.recentTrends || []}
+            <AttackTypesChart
+              data={enhancedMetrics?.attack_types || []}
+              isLoading={isLoading}
+            />
+          </div>
+
+          {/* Trends Analysis */}
+          <div className="px-4 sm:px-0 mt-8">
+            <TrendsAnalysis
+              weeklyData={enhancedMetrics?.weekly_trends || []}
+              monthlyData={enhancedMetrics?.monthly_trends || []}
               isLoading={isLoading}
             />
           </div>
@@ -146,7 +130,7 @@ export default function DashboardPage() {
                 <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
                   Acciones Rápidas
                 </h3>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <a
                     href="/reports"
                     className="block p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -180,21 +164,6 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </button>
-
-                  <div className="block p-4 border border-gray-200 rounded-lg bg-gray-50">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </div>
-                      <div className="ml-4">
-                        <h4 className="text-sm font-medium text-gray-500">Configuración</h4>
-                        <p className="text-sm text-gray-400">Próximamente disponible</p>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>

@@ -77,16 +77,17 @@ export const es = {
       actions: 'Acciones'
     },
     status: {
-      pendiente: 'Pendiente',
-      en_revision: 'En Revisión',
-      resuelto: 'Resuelto',
+      nuevo: 'Nuevo',
+      revisado: 'Revisado',
+      en_investigacion: 'En Investigación',
       cerrado: 'Cerrado'
     },
     attackTypes: {
-      phishing: 'Phishing',
-      malware: 'Malware',
-      fraude: 'Fraude',
-      robo_identidad: 'Robo de Identidad',
+      email: 'Correo Electrónico',
+      SMS: 'Mensajes SMS',
+      whatsapp: 'WhatsApp',
+      llamada: 'Llamada Telefónica',
+      redes_sociales: 'Redes Sociales',
       otro: 'Otro'
     },
     impactLevels: {
@@ -100,6 +101,57 @@ export const es = {
       edit: 'Editar',
       updateStatus: 'Actualizar Estado',
       addNotes: 'Agregar Notas'
+    },
+    search: {
+      title: 'Búsqueda Avanzada',
+      placeholder: 'Buscar en reportes...',
+      advancedSearch: 'Búsqueda Avanzada',
+      simpleSearch: 'Búsqueda Simple',
+      searchInFields: 'Buscar en campos',
+      allFields: 'Todos los campos',
+      description: 'Descripción',
+      location: 'Ubicación',
+      deviceInfo: 'Información del Dispositivo',
+      evidenceUrls: 'URLs de Evidencia',
+      filters: 'Filtros',
+      dateRange: 'Rango de Fechas',
+      from: 'Desde',
+      to: 'Hasta',
+      impactLevel: 'Nivel de Impacto',
+      anonymousOnly: 'Solo Anónimos',
+      identifiedOnly: 'Solo Identificados',
+      searchHistory: 'Historial de Búsquedas',
+      savedSearches: 'Búsquedas Guardadas',
+      saveSearch: 'Guardar Búsqueda',
+      saveSearchName: 'Nombre de la búsqueda',
+      clearHistory: 'Limpiar Historial',
+      noHistory: 'No hay historial de búsquedas',
+      noSavedSearches: 'No hay búsquedas guardadas',
+      searchResults: 'Resultados de búsqueda',
+      resultsCount: 'resultados encontrados',
+      highlighting: 'Resaltado de términos',
+      score: 'Puntuación'
+    },
+    notes: {
+      title: 'Notas Administrativas',
+      addNote: 'Agregar Nota',
+      editNote: 'Editar Nota',
+      deleteNote: 'Eliminar Nota',
+      noteContent: 'Contenido de la nota',
+      useTemplate: 'Usar Plantilla',
+      selectTemplate: 'Seleccionar plantilla',
+      saveAsTemplate: 'Guardar como plantilla',
+      templateName: 'Nombre de la plantilla',
+      templates: {
+        investigation: 'Investigación',
+        followUp: 'Seguimiento',
+        resolution: 'Resolución',
+        escalation: 'Escalación'
+      },
+      noNotes: 'No hay notas para este reporte',
+      noteAdded: 'Nota agregada exitosamente',
+      noteUpdated: 'Nota actualizada exitosamente',
+      noteDeleted: 'Nota eliminada exitosamente'
     }
   },
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import Header from '../../components/Header';
@@ -8,10 +8,14 @@ import ReportsTable from '../../components/Reports/ReportsTable';
 import ReportsFilter from '../../components/Reports/ReportsFilter';
 import Pagination from '../../components/Pagination';
 import { adminAPIService } from '../../services/AdminAPIService';
-import { ReportSummary, PaginatedResponse } from '../../types';
+import { ReportSummary } from '../../types';
 import { es } from '../../locales/es';
 
 export default function ReportsPage() {
+  // Add render counter for debugging
+  const renderCount = useRef(0);
+  renderCount.current += 1;
+
   const [reports, setReports] = useState<ReportSummary[]>([]);
   const [pagination, setPagination] = useState({
     total: 0,
@@ -22,69 +26,108 @@ export default function ReportsPage() {
   const [filters, setFilters] = useState({
     status: '',
     attackType: '',
-    search: ''
+    isAnonymous: '',
+    dateFrom: '',
+    dateTo: ''
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // Debug state changes
+  console.log('📊 Current state:', {
+    renderCount: renderCount.current,
+    filtersStatus: filters.status,
+    filtersAttackType: filters.attackType,
+    filtersIsAnonymous: filters.isAnonymous,
+    paginationPage: pagination.page,
+    paginationTotal: pagination.total,
+    reportsLength: reports.length,
+    isLoading
+  });
+
+  // Use refs to track values without triggering re-renders
+  const currentPaginationRef = useRef(pagination);
+  const currentFiltersRef = useRef(filters);
+  const loadingRef = useRef(false);
   const router = useRouter();
 
+  // Update refs when state changes
+  useEffect(() => {
+    currentPaginationRef.current = pagination;
+  }, [pagination]);
+
+  useEffect(() => {
+    currentFiltersRef.current = filters;
+  }, [filters]);
+
   const loadReports = useCallback(async () => {
+    if (loadingRef.current) return;
+
     try {
+      loadingRef.current = true;
       setIsLoading(true);
       setError(null);
 
       const params = {
-        page: pagination.page,
-        limit: pagination.limit,
-        ...(filters.status && { status: filters.status }),
-        ...(filters.attackType && { attackType: filters.attackType })
+        page: currentPaginationRef.current.page,
+        limit: currentPaginationRef.current.limit,
+        ...(currentFiltersRef.current.status && { status: currentFiltersRef.current.status }),
+        ...(currentFiltersRef.current.attackType && { attackType: currentFiltersRef.current.attackType }),
+        ...(currentFiltersRef.current.isAnonymous && { isAnonymous: currentFiltersRef.current.isAnonymous }),
+        ...(currentFiltersRef.current.dateFrom && { dateFrom: currentFiltersRef.current.dateFrom }),
+        ...(currentFiltersRef.current.dateTo && { dateTo: currentFiltersRef.current.dateTo })
       };
 
-      const response: PaginatedResponse<ReportSummary> = await adminAPIService.getReports(params);
+      const response = await adminAPIService.getReports(params);
+      setReports(response.data);
 
-      let filteredData = response.data;
-
-      // Apply client-side search filter if provided
-      if (filters.search.trim()) {
-        const searchTerm = filters.search.toLowerCase();
-        filteredData = response.data.filter(report =>
-          report.id.toString().includes(searchTerm) ||
-          report.location.toLowerCase().includes(searchTerm) ||
-          report.attackType.toLowerCase().includes(searchTerm)
-        );
-      }
-
-      setReports(filteredData);
-      setPagination({
-        total: response.total,
-        page: response.page,
-        limit: response.limit,
-        totalPages: response.totalPages
+      // Only update pagination if it actually changed
+      setPagination(prev => {
+        if (prev.total === response.total && prev.totalPages === response.totalPages) {
+          return prev; // Return same object to prevent re-render
+        }
+        return {
+          ...prev,
+          total: response.total,
+          totalPages: response.totalPages
+        };
       });
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Error al cargar reportes');
     } finally {
       setIsLoading(false);
+      loadingRef.current = false;
     }
-  }, [pagination.page, pagination.limit, filters.status, filters.attackType]);
+  }, []); // Empty dependencies - uses refs
 
+
+  // Single effect for initial load only
   useEffect(() => {
+    console.log('🎯 useEffect (mount) triggered', {
+      renderCount: renderCount.current
+    });
     loadReports();
-  }, [loadReports]);
+  }, [loadReports]); // Include loadReports dependency
+
 
   const handleFilterChange = (newFilters: typeof filters) => {
     setFilters(newFilters);
     setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page when filtering
+    // Manually trigger reload when filters change
+    setTimeout(() => loadReports(), 0);
   };
 
   const handlePageChange = (page: number) => {
     setPagination(prev => ({ ...prev, page }));
+    // Manually trigger loadReports for pagination changes
+    loadReports();
   };
 
   const handleViewReport = (id: number) => {
     router.push(`/reports/${id}`);
   };
+
 
   return (
     <ProtectedRoute>
@@ -103,11 +146,15 @@ export default function ReportsPage() {
                   {es.reports.listTitle}
                 </p>
               </div>
-              <div className="text-sm text-gray-500">
-                {pagination.total} {es.reports.pagination.results}
+              <div className="flex items-center space-x-4">
+                <div className="text-sm text-gray-500">
+                  {pagination.total} {es.reports.pagination.results}
+                </div>
               </div>
             </div>
           </div>
+
+
 
           {/* Filters */}
           <div className="px-4 sm:px-0">
@@ -116,6 +163,36 @@ export default function ReportsPage() {
               onFilterChange={handleFilterChange}
             />
           </div>
+
+          {/* Success Message */}
+          {successMessage && (
+            <div className="px-4 sm:px-0 mb-6">
+              <div className="rounded-md bg-green-50 p-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-green-800">
+                      {successMessage}
+                    </h3>
+                  </div>
+                  <div className="ml-auto pl-3">
+                    <button
+                      onClick={() => setSuccessMessage(null)}
+                      className="bg-green-50 rounded-md p-1.5 text-green-500 hover:bg-green-100"
+                    >
+                      <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Error State */}
           {error && (
@@ -134,12 +211,12 @@ export default function ReportsPage() {
                   </div>
                   <div className="ml-auto pl-3">
                     <button
-                      onClick={loadReports}
+                      onClick={() => setError(null)}
                       className="bg-red-50 rounded-md p-1.5 text-red-500 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-red-50 focus:ring-red-600"
                     >
-                      <span className="sr-only">Reintentar</span>
+                      <span className="sr-only">Cerrar</span>
                       <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                       </svg>
                     </button>
                   </div>
@@ -169,6 +246,8 @@ export default function ReportsPage() {
             </div>
           )}
         </main>
+
+
       </div>
     </ProtectedRoute>
   );
