@@ -178,17 +178,10 @@ class AdminAPIService {
     if (params?.dateFrom) queryParams.set('date_from', params.dateFrom);
     if (params?.dateTo) queryParams.set('date_to', params.dateTo);
 
-    // Use admin-specific endpoint first, fallback to /admin/reportes if needed
-    const endpoint = `/admin/reports${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    // Use standard reportes endpoint
+    const endpoint = `/reportes${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 
-    try {
-      return await this.request<PaginatedResponse<ReportSummary>>(endpoint);
-    } catch (error) {
-      // Fallback to legacy admin/reportes endpoint if it exists
-      console.warn('Falling back to /admin/reportes endpoint');
-      const fallbackEndpoint = `/admin/reportes${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-      return this.request<PaginatedResponse<ReportSummary>>(fallbackEndpoint);
-    }
+    return await this.request<PaginatedResponse<ReportSummary>>(endpoint);
   }
 
   async getReportById(id: number): Promise<Report> {

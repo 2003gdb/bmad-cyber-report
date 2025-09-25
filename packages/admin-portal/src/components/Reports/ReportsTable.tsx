@@ -128,14 +128,14 @@ export default function ReportsTable({
                   #{report.id}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {es.reports.attackTypes[report.attackType as keyof typeof es.reports.attackTypes] || report.attackType}
+                  {es.reports.attackTypes[report.attack_type as keyof typeof es.reports.attackTypes] || report.attack_type}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {formatDate(report.incidentDate)}
+                  {formatDate(report.incident_date)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getImpactColor(report.impactLevel)}`}>
-                    {es.reports.impactLevels[report.impactLevel as keyof typeof es.reports.impactLevels] || report.impactLevel}
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getImpactColor(report.impact_level)}`}>
+                    {es.reports.impactLevels[report.impact_level as keyof typeof es.reports.impactLevels] || report.impact_level}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -144,10 +144,10 @@ export default function ReportsTable({
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 max-w-xs truncate">
-                  {report.location}
+                  {report.attack_origin}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {report.isAnonymous ? (
+                  {report.is_anonymous ? (
                     <span className="text-gray-500">Sí</span>
                   ) : (
                     <span className="text-blue-600">No</span>

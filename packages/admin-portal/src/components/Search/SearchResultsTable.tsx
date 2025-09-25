@@ -140,8 +140,8 @@ export default function SearchResultsTable({
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColor(result.status)}`}>
                       {es.reports.status[result.status as keyof typeof es.reports.status] || result.status}
                     </span>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getImpactBadgeColor(result.impactLevel)}`}>
-                      {es.reports.impactLevels[result.impactLevel as keyof typeof es.reports.impactLevels] || result.impactLevel}
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getImpactBadgeColor(result.impact_level)}`}>
+                      {es.reports.impactLevels[result.impact_level as keyof typeof es.reports.impactLevels] || result.impact_level}
                     </span>
                   </div>
                 </div>
@@ -152,27 +152,27 @@ export default function SearchResultsTable({
                       <span className="font-medium">Tipo de Ataque:</span>{' '}
                       <span>
                         {highlightText(
-                          es.reports.attackTypes[result.attackType as keyof typeof es.reports.attackTypes] || result.attackType,
+                          es.reports.attackTypes[result.attack_type as keyof typeof es.reports.attackTypes] || result.attack_type,
                           searchFilters.query
                         )}
                       </span>
                     </div>
                     <div>
                       <span className="font-medium">Fecha:</span>{' '}
-                      {formatDate(result.incidentDate)}
+                      {formatDate(result.incident_date)}
                     </div>
                     <div>
                       <span className="font-medium">Ubicación:</span>{' '}
                       <span>
-                        {highlightText(result.location, searchFilters.query)}
+                        {highlightText(result.attack_origin, searchFilters.query)}
                       </span>
                     </div>
                     <div>
                       <span className="font-medium">Usuario:</span>{' '}
-                      {result.isAnonymous ? (
+                      {result.is_anonymous ? (
                         <span className="text-gray-500">Anónimo</span>
                       ) : (
-                        <span>ID: {result.userId}</span>
+                        <span>ID: {result.user_id}</span>
                       )}
                     </div>
                   </div>
@@ -205,7 +205,7 @@ export default function SearchResultsTable({
 
                 <div className="mt-3 flex items-center justify-between">
                   <div className="text-xs text-gray-500">
-                    Creado: {formatDate(result.createdAt)}
+                    Creado: {formatDate(result.created_at)}
                   </div>
                   <button
                     onClick={() => onViewReport(result.id)}

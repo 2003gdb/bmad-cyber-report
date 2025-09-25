@@ -174,22 +174,22 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Tipo de Ataque</dt>
                       <dd className="mt-1 text-sm text-gray-900">
-                        {es.reports.attackTypes[report.attackType as keyof typeof es.reports.attackTypes] || report.attackType}
+                        {es.reports.attackTypes[report.attack_type as keyof typeof es.reports.attackTypes] || report.attack_type}
                       </dd>
                     </div>
 
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Fecha del Incidente</dt>
                       <dd className="mt-1 text-sm text-gray-900">
-                        {formatDate(report.incidentDate)}
+                        {formatDate(report.incident_date)}
                       </dd>
                     </div>
 
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Nivel de Impacto</dt>
                       <dd className="mt-1">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getImpactColor(report.impactLevel)}`}>
-                          {es.reports.impactLevels[report.impactLevel as keyof typeof es.reports.impactLevels] || report.impactLevel}
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getImpactColor(report.impact_level)}`}>
+                          {es.reports.impactLevels[report.impact_level as keyof typeof es.reports.impactLevels] || report.impact_level}
                         </span>
                       </dd>
                     </div>
@@ -205,13 +205,13 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
 
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Ubicación</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{report.location}</dd>
+                      <dd className="mt-1 text-sm text-gray-900">{report.attack_origin}</dd>
                     </div>
 
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Reporte Anónimo</dt>
                       <dd className="mt-1 text-sm text-gray-900">
-                        {report.isAnonymous ? 'Sí' : 'No'}
+                        {report.is_anonymous ? 'Sí' : 'No'}
                       </dd>
                     </div>
                   </div>
@@ -223,28 +223,28 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Usuario</dt>
                       <dd className="mt-1 text-sm text-gray-900">
-                        {report.isAnonymous ? 'Anónimo' : `ID: ${report.userId}`}
+                        {report.is_anonymous ? 'Anónimo' : `ID: ${report.user_id}`}
                       </dd>
                     </div>
 
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Información del Dispositivo</dt>
                       <dd className="mt-1 text-sm text-gray-900">
-                        {report.deviceInfo || 'No disponible'}
+                        {report.device_info || 'No disponible'}
                       </dd>
                     </div>
 
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Fecha de Creación</dt>
                       <dd className="mt-1 text-sm text-gray-900">
-                        {formatDate(report.createdAt)}
+                        {formatDate(report.created_at)}
                       </dd>
                     </div>
 
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Última Actualización</dt>
                       <dd className="mt-1 text-sm text-gray-900">
-                        {formatDate(report.updatedAt)}
+                        {formatDate(report.updated_at)}
                       </dd>
                     </div>
                   </div>
@@ -261,23 +261,23 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                 </div>
 
                 {/* Admin Notes */}
-                {report.adminNotes && (
+                {report.admin_notes && (
                   <div className="mt-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-3">Notas Administrativas</h3>
                     <div className="bg-blue-50 rounded-lg p-4">
                       <p className="text-sm text-blue-700 whitespace-pre-wrap">
-                        {report.adminNotes}
+                        {report.admin_notes}
                       </p>
                     </div>
                   </div>
                 )}
 
                 {/* Evidence URLs */}
-                {report.evidenceUrls && report.evidenceUrls.length > 0 && (
+                {report.evidence_urls && report.evidence_urls.length > 0 && (
                   <div className="mt-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-3">Evidencia</h3>
                     <ul className="space-y-2">
-                      {report.evidenceUrls.map((url, index) => (
+                      {report.evidence_urls.map((url, index) => (
                         <li key={index}>
                           <a
                             href={url}

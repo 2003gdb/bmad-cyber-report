@@ -21,31 +21,31 @@ export interface LoginResponse {
 
 export interface ReportSummary {
   id: number;
-  attackType: string;
-  incidentDate: string;
-  impactLevel: string;
+  attack_type: string;
+  incident_date: string;
+  impact_level: string;
   status: string;
-  isAnonymous: boolean;
-  userId: number | null;
-  location: string;
-  createdAt: string;
+  is_anonymous: boolean;
+  user_id: number | null;
+  attack_origin: string;
+  created_at: string;
 }
 
 export interface Report {
   id: number;
-  userId: number | null;
-  attackType: string;
-  incidentDate: string;
-  impactLevel: string;
+  user_id: number | null;
+  attack_type: string;
+  incident_date: string;
+  impact_level: string;
   description: string;
-  location: string;
-  deviceInfo: string | null;
-  isAnonymous: boolean;
+  attack_origin: string;
+  device_info: string | null;
+  is_anonymous: boolean;
   status: string;
-  adminNotes: string | null;
-  evidenceUrls: string[];
-  createdAt: string;
-  updatedAt: string;
+  admin_notes: string | null;
+  evidence_urls: string[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface DashboardMetrics {
@@ -147,7 +147,7 @@ export interface SearchResult extends ReportSummary {
   highlights?: {
     description?: string[];
     location?: string[];
-    attackType?: string[];
+    attack_type?: string[];
   };
   score?: number;
 }
