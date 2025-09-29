@@ -69,6 +69,9 @@ coverage.xml
 # Temporary files
 *.tmp
 *.temp
+*.bak
+*.backup
+*~
 
 # Database dumps and backups
 *.sql

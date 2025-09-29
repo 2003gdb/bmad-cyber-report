@@ -7,6 +7,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { DbService } from '../db/db.service';
+import { CatalogMappingService } from '../admin/catalog-mapping.service';
 
 // Legacy-compatible interfaces for external API
 export interface LegacyReport {
@@ -56,51 +57,17 @@ export interface ReportFilterDto {
 
 @Injectable()
 export class ReportsRepository {
-  constructor(private readonly db: DbService) {}
-
-  // Mapping constants for conversion
-  private readonly ATTACK_TYPE_MAP = {
-    'email': 1,
-    'SMS': 2,
-    'whatsapp': 3,
-    'llamada': 4,
-    'redes_sociales': 5,
-    'otro': 6
-  };
-
-  private readonly IMPACT_MAP = {
-    'ninguno': 1,
-    'robo_datos': 2,
-    'robo_dinero': 3,
-    'cuenta_comprometida': 4
-  };
-
-  private readonly STATUS_MAP = {
-    'nuevo': 1,
-    'revisado': 2,
-    'en_investigacion': 3,
-    'cerrado': 4
-  };
-
-  // Reverse mappings
-  private readonly ATTACK_TYPE_REVERSE = Object.fromEntries(
-    Object.entries(this.ATTACK_TYPE_MAP).map(([k, v]) => [v, k])
-  );
-
-  private readonly IMPACT_REVERSE = Object.fromEntries(
-    Object.entries(this.IMPACT_MAP).map(([k, v]) => [v, k])
-  );
-
-  private readonly STATUS_REVERSE = Object.fromEntries(
-    Object.entries(this.STATUS_MAP).map(([k, v]) => [v, k])
-  );
+  constructor(
+    private readonly db: DbService,
+    private readonly catalogMappingService: CatalogMappingService
+  ) {}
 
   /**
    * Convert legacy report data to normalized format for database storage
    */
   private convertToNormalized(data: CreateLegacyReportData) {
-    const attackTypeId = this.ATTACK_TYPE_MAP[data.attack_type as keyof typeof this.ATTACK_TYPE_MAP];
-    const impactId = this.IMPACT_MAP[data.impact_level as keyof typeof this.IMPACT_MAP];
+    const attackTypeId = this.catalogMappingService.getAttackTypeId(data.attack_type);
+    const impactId = this.catalogMappingService.getImpactId(data.impact_level);
 
     if (!attackTypeId || !impactId) {
       throw new Error(`Invalid enum values: attack_type=${data.attack_type}, impact_level=${data.impact_level}`);
@@ -136,15 +103,15 @@ export class ReportsRepository {
       id: row.id,
       user_id: row.user_id,
       is_anonymous: Boolean(row.is_anonymous),
-      attack_type: this.ATTACK_TYPE_REVERSE[row.attack_type] || 'otro',
+      attack_type: this.catalogMappingService.getAttackTypeString(row.attack_type),
       incident_date: incidentDate.toISOString().split('T')[0],
       incident_time: incidentDate.toTimeString().split(' ')[0],
       attack_origin: row.attack_origin,
       suspicious_url: row.suspicious_url,
       message_content: row.message_content,
-      impact_level: this.IMPACT_REVERSE[row.impact] || 'ninguno',
+      impact_level: this.catalogMappingService.getImpactString(row.impact),
       description: row.description,
-      status: this.STATUS_REVERSE[row.status] || 'nuevo',
+      status: this.catalogMappingService.getStatusString(row.status),
       admin_notes: row.admin_notes,
       created_at: row.created_at,
       updated_at: row.updated_at,
@@ -230,7 +197,7 @@ export class ReportsRepository {
 
     // Convert legacy filters to normalized IDs
     if (filters?.status) {
-      const statusId = this.STATUS_MAP[filters.status as 'nuevo' | 'revisado' | 'en_investigacion' | 'cerrado'];
+      const statusId = this.catalogMappingService.getStatusId(filters.status);
       if (statusId) {
         conditions.push('r.status = ?');
         countValues.push(statusId);
@@ -238,7 +205,7 @@ export class ReportsRepository {
     }
 
     if (filters?.attack_type) {
-      const attackTypeId = this.ATTACK_TYPE_MAP[filters.attack_type as 'email' | 'SMS' | 'whatsapp' | 'llamada' | 'redes_sociales' | 'otro'];
+      const attackTypeId = this.catalogMappingService.getAttackTypeId(filters.attack_type);
       if (attackTypeId) {
         conditions.push('r.attack_type = ?');
         countValues.push(attackTypeId);
@@ -340,7 +307,7 @@ export class ReportsRepository {
 
     // Convert attack_type IDs back to strings
     return result.map(row => ({
-      attack_type: this.ATTACK_TYPE_REVERSE[row.attack_type] || 'otro',
+      attack_type: this.catalogMappingService.getAttackTypeString(row.attack_type),
       count: row.count
     }));
   }
@@ -359,7 +326,7 @@ export class ReportsRepository {
 
     // Convert impact IDs back to strings
     return result.map(row => ({
-      impact_level: this.IMPACT_REVERSE[row.impact] || 'ninguno',
+      impact_level: this.catalogMappingService.getImpactString(row.impact),
       count: row.count
     }));
   }

@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { DbService } from "src/db/db.service";
+import { CatalogMappingService } from "./catalog-mapping.service";
 
 export interface ReportFilters {
     status?: string;
@@ -40,24 +41,10 @@ export interface EnhancedDashboardStats {
 
 @Injectable()
 export class AdminRepository {
-    constructor(private readonly db: DbService) {}
-
-    // Mapping constants for ENUM to ID conversion
-    private readonly ATTACK_TYPE_MAP = {
-        'email': 1,
-        'SMS': 2,
-        'whatsapp': 3,
-        'llamada': 4,
-        'redes_sociales': 5,
-        'otro': 6
-    };
-
-    private readonly STATUS_MAP = {
-        'nuevo': 1,
-        'revisado': 2,
-        'en_investigacion': 3,
-        'cerrado': 4
-    };
+    constructor(
+        private readonly db: DbService,
+        private readonly catalogMappingService: CatalogMappingService
+    ) {}
 
     async getUserCount(): Promise<number> {
         const sql = `SELECT COUNT(*) as count FROM users`;
@@ -126,7 +113,7 @@ export class AdminRepository {
         const params: (string | number)[] = [];
 
         if (filters.status) {
-            const statusId = this.STATUS_MAP[filters.status as 'nuevo' | 'revisado' | 'en_investigacion' | 'cerrado'];
+            const statusId = this.catalogMappingService.getStatusId(filters.status);
             if (statusId) {
                 sql += ` AND r.status = ?`;
                 params.push(statusId);
@@ -134,7 +121,7 @@ export class AdminRepository {
         }
 
         if (filters.attack_type) {
-            const attackTypeId = this.ATTACK_TYPE_MAP[filters.attack_type as 'email' | 'SMS' | 'whatsapp' | 'llamada' | 'redes_sociales' | 'otro'];
+            const attackTypeId = this.catalogMappingService.getAttackTypeId(filters.attack_type);
             if (attackTypeId) {
                 sql += ` AND r.attack_type = ?`;
                 params.push(attackTypeId);
@@ -164,7 +151,7 @@ export class AdminRepository {
     }
 
     async updateReportStatus(reportId: number, status: string, adminNotes?: string): Promise<Record<string, unknown> | null> {
-        const statusId = this.STATUS_MAP[status as 'nuevo' | 'revisado' | 'en_investigacion' | 'cerrado'];
+        const statusId = this.catalogMappingService.getStatusId(status);
         if (!statusId) {
             throw new Error(`Invalid status: ${status}`);
         }

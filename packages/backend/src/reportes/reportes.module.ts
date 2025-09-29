@@ -6,6 +6,7 @@ import { ReportsRepository } from "./reports.repository";
 import { CatalogRepository } from "../catalog/catalog.repository";
 import { AdjuntosRepository } from "./adjuntos.repository";
 import { ComunidadRepository } from "src/comunidad/comunidad.repository";
+import { CatalogMappingService } from "../admin/catalog-mapping.service";
 import { DbModule } from "../db/db.module";
 
 @Module({
@@ -16,7 +17,8 @@ import { DbModule } from "../db/db.module";
         ReportsRepository,
         CatalogRepository,
         AdjuntosRepository,
-        ComunidadRepository
+        ComunidadRepository,
+        CatalogMappingService
     ],
     exports: [
         ReportesService,
