@@ -6,8 +6,9 @@ import ProtectedRoute from '../../../components/ProtectedRoute';
 import Header from '../../../components/Header';
 import StatusUpdateModal from '../../../components/Reports/StatusUpdateModal';
 import { adminAPIService } from '../../../services/AdminAPIService';
-import { Report, UpdateStatusRequest } from '../../../types';
+import { Report } from '../../../types';
 import { es } from '../../../locales/es';
+import { CatalogProvider, useCatalogDisplayNames } from '../../../contexts/CatalogContext';
 
 interface ReportDetailPageProps {
   params: {
@@ -15,7 +16,7 @@ interface ReportDetailPageProps {
   };
 }
 
-export default function ReportDetailPage({ params }: ReportDetailPageProps) {
+function ReportDetailContent({ params }: ReportDetailPageProps) {
   const [report, setReport] = useState<Report | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,6 +24,38 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
 
   const router = useRouter();
   const reportId = parseInt(params.id);
+
+  // Use catalog context for display names
+  const { loading: catalogLoading } = useCatalogDisplayNames();
+
+  // Helper function to get display names with fallback
+  const getDisplayName = (type: 'attackTypes' | 'impacts' | 'statuses', value: string): string => {
+    // First try to get user-friendly display names
+    const displayNames = {
+      attackTypes: {
+        'email': 'Email',
+        'SMS': 'SMS',
+        'whatsapp': 'WhatsApp',
+        'llamada': 'Llamada telefónica',
+        'redes_sociales': 'Redes sociales',
+        'otro': 'Otro'
+      },
+      impacts: {
+        'ninguno': 'Sin Impacto',
+        'robo_datos': 'Robo de Datos',
+        'robo_dinero': 'Robo de Dinero',
+        'cuenta_comprometida': 'Cuenta Comprometida'
+      },
+      statuses: {
+        'nuevo': 'Nuevo',
+        'revisado': 'Revisado',
+        'en_investigacion': 'En Investigación',
+        'cerrado': 'Cerrado'
+      }
+    };
+
+    return displayNames[type][value as keyof typeof displayNames[typeof type]] || value;
+  };
 
   const loadReport = useCallback(async () => {
     try {
@@ -88,7 +121,8 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
     }
   };
 
-  if (isLoading) {
+  // Show loading if either report data or catalog data is loading
+  if (isLoading || catalogLoading) {
     return (
       <ProtectedRoute>
         <div className="min-h-screen bg-gray-50">
@@ -96,6 +130,9 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
           <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
             <div className="flex items-center justify-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              <span className="ml-3 text-gray-600">
+                {catalogLoading ? 'Cargando configuración...' : 'Cargando reporte...'}
+              </span>
             </div>
           </main>
         </div>
@@ -153,12 +190,14 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                   {es.reports.detailTitle} #{report.id}
                 </h1>
               </div>
-              <button
-                onClick={() => setShowStatusModal(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-              >
-                {es.reports.actions.updateStatus}
-              </button>
+              {!report.is_anonymous && (
+                <button
+                  onClick={() => setShowStatusModal(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                >
+                  {es.reports.actions.updateStatus}
+                </button>
+              )}
             </div>
           </div>
 
@@ -174,7 +213,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Tipo de Ataque</dt>
                       <dd className="mt-1 text-sm text-gray-900">
-                        {es.reports.attackTypes[report.attack_type as keyof typeof es.reports.attackTypes] || report.attack_type}
+                        {getDisplayName('attackTypes', report.attack_type)}
                       </dd>
                     </div>
 
@@ -189,7 +228,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                       <dt className="text-sm font-medium text-gray-500">Nivel de Impacto</dt>
                       <dd className="mt-1">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getImpactColor(report.impact_level)}`}>
-                          {es.reports.impactLevels[report.impact_level as keyof typeof es.reports.impactLevels] || report.impact_level}
+                          {getDisplayName('impacts', report.impact_level)}
                         </span>
                       </dd>
                     </div>
@@ -198,7 +237,7 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                       <dt className="text-sm font-medium text-gray-500">Estado</dt>
                       <dd className="mt-1">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(report.status)}`}>
-                          {es.reports.status[report.status as keyof typeof es.reports.status] || report.status}
+                          {getDisplayName('statuses', report.status)}
                         </span>
                       </dd>
                     </div>
@@ -272,24 +311,20 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
                   </div>
                 )}
 
-                {/* Evidence URLs */}
-                {report.evidence_urls && report.evidence_urls.length > 0 && (
+                {/* Evidence URL */}
+                {report.evidence_url && (
                   <div className="mt-6">
                     <h3 className="text-lg font-medium text-gray-900 mb-3">Evidencia</h3>
-                    <ul className="space-y-2">
-                      {report.evidence_urls.map((url, index) => (
-                        <li key={index}>
-                          <a
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 text-sm"
-                          >
-                            Evidencia {index + 1}
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
+                    <div>
+                      <a
+                        href={report.evidence_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 text-sm"
+                      >
+                        Ver evidencia
+                      </a>
+                    </div>
                   </div>
                 )}
               </div>
@@ -308,5 +343,13 @@ export default function ReportDetailPage({ params }: ReportDetailPageProps) {
         )}
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function ReportDetailPage({ params }: ReportDetailPageProps) {
+  return (
+    <CatalogProvider>
+      <ReportDetailContent params={params} />
+    </CatalogProvider>
   );
 }

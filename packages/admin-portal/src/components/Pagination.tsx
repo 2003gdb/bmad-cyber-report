@@ -41,14 +41,14 @@ export default function Pagination({ currentPage, totalPages, totalResults, onPa
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="relative inline-flex items-center px-4 py-2 border border-safetrade-blue/30 text-sm font-medium text-safetrade-dark bg-white hover:bg-safetrade-blue/10 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {es.reports.pagination.previous}
         </button>
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="ml-3 relative inline-flex items-center px-4 py-2 border border-safetrade-blue/30 text-sm font-medium text-safetrade-dark bg-white hover:bg-safetrade-blue/10 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {es.reports.pagination.next}
         </button>
@@ -56,7 +56,7 @@ export default function Pagination({ currentPage, totalPages, totalResults, onPa
 
       <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm text-gray-700">
+          <p className="text-sm text-safetrade-dark">
             Mostrando{' '}
             <span className="font-medium">{((currentPage - 1) * 10) + 1}</span>
             {' '}al{' '}
@@ -70,12 +70,12 @@ export default function Pagination({ currentPage, totalPages, totalResults, onPa
         </div>
 
         <div>
-          <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+          <nav className="relative z-0 inline-flex shadow-sm -space-x-px" aria-label="Pagination">
             {/* Previous Button */}
             <button
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative inline-flex items-center px-2 py-2 border border-safetrade-blue/30 bg-white text-sm font-medium text-safetrade-dark/70 hover:bg-safetrade-blue/10 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="sr-only">{es.reports.pagination.previous}</span>
               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -87,7 +87,7 @@ export default function Pagination({ currentPage, totalPages, totalResults, onPa
             {generatePageNumbers().map((page, index) => (
               <span key={index}>
                 {page === '...' ? (
-                  <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                  <span className="relative inline-flex items-center px-4 py-2 border border-safetrade-blue/30 bg-white text-sm font-medium text-safetrade-dark">
                     ...
                   </span>
                 ) : (
@@ -95,8 +95,8 @@ export default function Pagination({ currentPage, totalPages, totalResults, onPa
                     onClick={() => onPageChange(page as number)}
                     className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                       currentPage === page
-                        ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                        ? 'z-10 bg-safetrade-orange/10 border-safetrade-orange text-safetrade-orange'
+                        : 'bg-white border-safetrade-blue/30 text-safetrade-dark/70 hover:bg-safetrade-blue/10'
                     }`}
                   >
                     {page}
@@ -109,7 +109,7 @@ export default function Pagination({ currentPage, totalPages, totalResults, onPa
             <button
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative inline-flex items-center px-2 py-2 border border-safetrade-blue/30 bg-white text-sm font-medium text-safetrade-dark/70 hover:bg-safetrade-blue/10 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="sr-only">{es.reports.pagination.next}</span>
               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

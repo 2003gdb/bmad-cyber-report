@@ -119,18 +119,18 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <div className="mx-auto h-12 w-12 bg-blue-600 rounded-full flex items-center justify-center">
+          <div className="mx-auto h-12 w-12 bg-safetrade-orange flex items-center justify-center">
             <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
             </svg>
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-safetrade-dark">
             {es.register.title}
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-safetrade-dark/70">
             {es.register.subtitle}
           </p>
         </div>
@@ -139,7 +139,7 @@ export default function RegisterPage() {
           <div className="space-y-4">
             {/* Email Field */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-medium text-safetrade-dark">
                 {es.register.email}
               </label>
               <input
@@ -151,8 +151,8 @@ export default function RegisterPage() {
                 value={credentials.email}
                 onChange={handleInputChange}
                 className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                  validationErrors.email ? 'border-red-300' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
+                  validationErrors.email ? 'border-red-300' : 'border-safetrade-blue/30'
+                } placeholder-gray-500 text-safetrade-dark focus:outline-none focus:ring-safetrade-orange focus:border-safetrade-orange focus:z-10 sm:text-sm`}
                 placeholder={es.register.email}
               />
               {validationErrors.email && (
@@ -162,7 +162,7 @@ export default function RegisterPage() {
 
             {/* Password Field */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-sm font-medium text-safetrade-dark">
                 {es.register.password}
               </label>
               <input
@@ -174,8 +174,8 @@ export default function RegisterPage() {
                 value={credentials.password}
                 onChange={handleInputChange}
                 className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                  validationErrors.password ? 'border-red-300' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
+                  validationErrors.password ? 'border-red-300' : 'border-safetrade-blue/30'
+                } placeholder-gray-500 text-safetrade-dark focus:outline-none focus:ring-safetrade-orange focus:border-safetrade-orange focus:z-10 sm:text-sm`}
                 placeholder={es.register.password}
               />
               {validationErrors.password && (
@@ -185,7 +185,7 @@ export default function RegisterPage() {
 
             {/* Password Confirmation Field */}
             <div>
-              <label htmlFor="passwordConfirm" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="passwordConfirm" className="block text-sm font-medium text-safetrade-dark">
                 {es.register.passwordConfirm}
               </label>
               <input
@@ -197,8 +197,8 @@ export default function RegisterPage() {
                 value={credentials.passwordConfirm}
                 onChange={handleInputChange}
                 className={`mt-1 appearance-none relative block w-full px-3 py-2 border ${
-                  validationErrors.passwordConfirm ? 'border-red-300' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
+                  validationErrors.passwordConfirm ? 'border-red-300' : 'border-safetrade-blue/30'
+                } placeholder-gray-500 text-safetrade-dark focus:outline-none focus:ring-safetrade-orange focus:border-safetrade-orange focus:z-10 sm:text-sm`}
                 placeholder={es.register.passwordConfirm}
               />
               {validationErrors.passwordConfirm && (
@@ -209,7 +209,7 @@ export default function RegisterPage() {
 
           {/* Success Message */}
           {success && (
-            <div className="rounded-md bg-green-50 p-4">
+            <div className="bg-green-50 p-4">
               <div className="flex">
                 <div className="flex-shrink-0">
                   <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
@@ -230,7 +230,7 @@ export default function RegisterPage() {
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-md bg-red-50 p-4">
+            <div className="bg-red-50 p-4">
               <div className="flex">
                 <div className="flex-shrink-0">
                   <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -251,7 +251,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium text-white bg-safetrade-orange hover:bg-safetrade-orange/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-safetrade-orange disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <div className="flex items-center">
@@ -271,7 +271,7 @@ export default function RegisterPage() {
           <div className="text-center">
             <a
               href="/login"
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+              className="text-safetrade-orange hover:text-safetrade-orange/80 text-sm font-medium"
             >
               {es.login.goToLogin}
             </a>

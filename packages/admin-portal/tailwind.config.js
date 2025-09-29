@@ -8,17 +8,17 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+        // SafeTrade Brand Colors (from Swift DesignSystem)
+        safetrade: {
+          blue: '#A1CDF4',
+          orange: '#F5853F',
+          dark: '#25283D',
+        },
+        // Status colors matching Swift app
+        status: {
+          accepted: '#10B981', // green-500
+          progress: '#F59E0B', // amber-500
+          rejected: '#EF4444', // red-500
         },
       },
       screens: {

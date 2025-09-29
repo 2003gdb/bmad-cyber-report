@@ -12,10 +12,10 @@ interface TrendsAnalysisProps {
 export default function TrendsAnalysis({ weeklyData, monthlyData, isLoading }: TrendsAnalysisProps) {
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Tendencias Temporales</h3>
+      <div className="bg-white/70 backdrop-blur-sm shadow border border-safetrade-blue/30 p-6">
+        <h3 className="text-lg font-medium text-safetrade-dark mb-4">Tendencias Temporales</h3>
         <div className="h-64 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="animate-spin h-8 w-8 border-b-2 border-safetrade-orange"></div>
         </div>
       </div>
     );
@@ -36,10 +36,10 @@ export default function TrendsAnalysis({ weeklyData, monthlyData, isLoading }: T
   const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+        <div className="bg-white p-3 border border-safetrade-blue/30 shadow-lg">
           <p className="font-medium">{label}</p>
-          <p className="text-sm text-gray-600">
-            Reportes: <span className="font-medium text-blue-600">{payload[0].value}</span>
+          <p className="text-sm text-safetrade-dark/70">
+            Reportes: <span className="font-medium text-safetrade-orange">{payload[0].value}</span>
           </p>
         </div>
       );
@@ -50,12 +50,12 @@ export default function TrendsAnalysis({ weeklyData, monthlyData, isLoading }: T
   return (
     <div className="space-y-6">
       {/* Weekly Trends */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Tendencia Semanal (Últimas 8 Semanas)</h3>
+      <div className="bg-white/70 backdrop-blur-sm shadow border border-safetrade-blue/30 p-6">
+        <h3 className="text-lg font-medium text-safetrade-dark mb-4">Tendencia Semanal (Últimas 8 Semanas)</h3>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={weeklyChartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#A1CDF4" opacity={0.3} />
               <XAxis
                 dataKey="period"
                 tick={{ fontSize: 12 }}
@@ -68,10 +68,10 @@ export default function TrendsAnalysis({ weeklyData, monthlyData, isLoading }: T
               <Line
                 type="monotone"
                 dataKey="reportes"
-                stroke="#3B82F6"
+                stroke="#F5853F"
                 strokeWidth={2}
-                dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: '#3B82F6', strokeWidth: 2 }}
+                dot={{ fill: '#F5853F', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: '#F5853F', strokeWidth: 2 }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -79,12 +79,12 @@ export default function TrendsAnalysis({ weeklyData, monthlyData, isLoading }: T
       </div>
 
       {/* Monthly Trends */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Tendencia Mensual (Últimos 6 Meses)</h3>
+      <div className="bg-white/70 backdrop-blur-sm shadow border border-safetrade-blue/30 p-6">
+        <h3 className="text-lg font-medium text-safetrade-dark mb-4">Tendencia Mensual (Últimos 6 Meses)</h3>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={monthlyChartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#A1CDF4" opacity={0.3} />
               <XAxis
                 dataKey="period"
                 tick={{ fontSize: 12 }}
@@ -94,10 +94,10 @@ export default function TrendsAnalysis({ weeklyData, monthlyData, isLoading }: T
               <Line
                 type="monotone"
                 dataKey="reportes"
-                stroke="#10B981"
+                stroke="#A1CDF4"
                 strokeWidth={2}
-                dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: '#10B981', strokeWidth: 2 }}
+                dot={{ fill: '#A1CDF4', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: '#A1CDF4', strokeWidth: 2 }}
               />
             </LineChart>
           </ResponsiveContainer>

@@ -17,6 +17,20 @@ import {
   NoteTemplate
 } from '../types';
 
+import {
+  CatalogData,
+  CatalogMaps,
+  CatalogAPIResponse
+} from '../types/catalog.types';
+
+import {
+  ReportWithDetails,
+  NormalizedReport,
+  AdminPortalFilters
+} from '../types/normalized.types';
+
+import { CatalogUtils } from '../utils/catalogUtils';
+
 export interface RegisterRequest {
   email: string;
   password: string;
@@ -36,6 +50,10 @@ export interface RegisterResponse {
 class AdminAPIService {
   private baseURL: string;
   private token: string | null = null;
+  private catalogCache: CatalogData | null = null;
+  private catalogMaps: CatalogMaps | null = null;
+  private lastCacheTime: number = 0;
+  private readonly CACHE_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
   constructor() {
     this.baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -58,6 +76,8 @@ class AdminAPIService {
       },
       ...options,
     };
+
+    console.log('🌐 Making request:', { url, method: config.method || 'GET', hasAuth: !!this.token });
 
     try {
       const response = await fetch(url, config);
@@ -136,6 +156,108 @@ class AdminAPIService {
     return this.token;
   }
 
+  // Catalog Methods
+  async getCatalogs(): Promise<CatalogData> {
+    const now = Date.now();
+
+    // Return cached data if valid and not expired
+    if (this.catalogCache && this.isCacheValid(now)) {
+      return this.catalogCache;
+    }
+
+    console.log('📋 Loading catalog data from API...');
+
+    try {
+      console.log('🔄 Making request to /reportes/catalogs...');
+      const response = await this.request<{success: boolean; data: CatalogAPIResponse}>('/reportes/catalogs');
+
+      console.log('📦 Raw response received:', response);
+
+      // Handle the wrapped response from backend: {success: true, data: {...}}
+      let catalogData: CatalogAPIResponse;
+
+      if (response.data && response.data.attackTypes) {
+        // Backend returns: { success: true, data: { attackTypes: [...], impacts: [...], statuses: [...] } }
+        catalogData = response.data;
+      } else if (response.attackTypes) {
+        // Fallback: Backend returns: { success: true, attackTypes: [...], impacts: [...], statuses: [...] }
+        catalogData = response as any;
+      } else {
+        console.error('Unexpected response structure:', response);
+        throw new Error('Invalid catalog data structure received from API');
+      }
+
+      if (!catalogData || !catalogData.attackTypes || !catalogData.impacts || !catalogData.statuses) {
+        console.error('Missing required catalog data fields:', catalogData);
+        throw new Error('Invalid catalog data structure received from API');
+      }
+
+      this.catalogCache = {
+        attackTypes: catalogData.attackTypes,
+        impacts: catalogData.impacts,
+        statuses: catalogData.statuses
+      };
+
+      this.catalogMaps = CatalogUtils.createLookupMaps(this.catalogCache);
+      this.lastCacheTime = now;
+
+      console.log('✅ Catalog data loaded and cached:', {
+        attackTypes: this.catalogCache.attackTypes.length,
+        impacts: this.catalogCache.impacts.length,
+        statuses: this.catalogCache.statuses.length
+      });
+
+      return this.catalogCache;
+    } catch (error) {
+      console.error('❌ Error loading catalog data:', error);
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace',
+        baseURL: this.baseURL
+      });
+
+      // Return default catalogs as fallback
+      const defaultCatalogs = CatalogUtils.createDefaultCatalogs();
+      console.warn('🔄 Using default catalog data as fallback');
+      return defaultCatalogs;
+    }
+  }
+
+  async getCatalogMaps(): Promise<CatalogMaps> {
+    if (!this.catalogMaps) {
+      await this.getCatalogs(); // This will create the maps
+    }
+    return this.catalogMaps!;
+  }
+
+  async refreshCatalogs(): Promise<void> {
+    console.log('🔄 Refreshing catalog cache...');
+    this.catalogCache = null;
+    this.catalogMaps = null;
+    this.lastCacheTime = 0;
+    await this.getCatalogs();
+  }
+
+  // Helper methods for catalog lookups
+  async getAttackTypeName(id: number): Promise<string> {
+    const maps = await this.getCatalogMaps();
+    return maps.attackTypeMap.get(id) || 'Desconocido';
+  }
+
+  async getImpactName(id: number): Promise<string> {
+    const maps = await this.getCatalogMaps();
+    return maps.impactMap.get(id) || 'Desconocido';
+  }
+
+  async getStatusName(id: number): Promise<string> {
+    const maps = await this.getCatalogMaps();
+    return maps.statusMap.get(id) || 'Desconocido';
+  }
+
+  private isCacheValid(now: number): boolean {
+    return (now - this.lastCacheTime) < this.CACHE_TIMEOUT;
+  }
+
   // Dashboard Methods
   async getDashboardMetrics(): Promise<DashboardMetrics> {
     const response = await this.request<{
@@ -155,7 +277,31 @@ class AdminAPIService {
   }
 
   async getEnhancedDashboardMetrics(): Promise<EnhancedDashboardMetrics> {
-    return await this.request<EnhancedDashboardMetrics>('/admin/dashboard/enhanced');
+    // Ensure catalogs are loaded
+    await this.getCatalogs();
+    const maps = await this.getCatalogMaps();
+
+    const response = await this.request<EnhancedDashboardMetrics>('/admin/dashboard/enhanced');
+
+    // Enrich the response with catalog names if they're not already present
+    const enrichedResponse = {
+      ...response,
+      attack_types: response.attack_types?.map((item: any) => ({
+        ...item,
+        attack_type: item.attack_type_name || item.attack_type, // Ensure backward compatibility
+        attack_type_name: item.attack_type_name || maps.attackTypeMap.get(item.attack_type_id) || 'Desconocido'
+      })),
+      impact_distribution: response.impact_distribution?.map((item: any) => ({
+        ...item,
+        impact_name: item.impact_name || maps.impactMap.get(item.impact_id) || 'Desconocido'
+      })),
+      status_distribution: response.status_distribution?.map((item: any) => ({
+        ...item,
+        status_name: item.status_name || maps.statusMap.get(item.status_id) || 'Desconocido'
+      }))
+    };
+
+    return enrichedResponse;
   }
 
   // Reports Methods
@@ -168,6 +314,10 @@ class AdminAPIService {
     dateFrom?: string;
     dateTo?: string;
   }): Promise<PaginatedResponse<ReportSummary>> {
+    // Ensure catalogs are loaded for enrichment
+    await this.getCatalogs();
+    const maps = await this.getCatalogMaps();
+
     const queryParams = new URLSearchParams();
 
     if (params?.page) queryParams.set('page', params.page.toString());
@@ -181,18 +331,43 @@ class AdminAPIService {
     // Use standard reportes endpoint
     const endpoint = `/reportes${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 
-    return await this.request<PaginatedResponse<ReportSummary>>(endpoint);
+    const response = await this.request<PaginatedResponse<ReportSummary>>(endpoint);
+
+    // Enrich reports with catalog names if they don't already have them
+    const enrichedReports = response.data.map((report: ReportSummary) => {
+      // Try to convert string attack types to IDs if they're still strings
+      let attackTypeId: number | null = null;
+      let impactId: number | null = null;
+      let statusId: number | null = null;
+
+      if (typeof report.attack_type === 'string') {
+        attackTypeId = maps.attackTypeNameMap.get(report.attack_type) || null;
+      }
+      if (typeof report.impact_level === 'string') {
+        impactId = maps.impactNameMap.get(report.impact_level) || null;
+      }
+      if (typeof report.status === 'string') {
+        statusId = maps.statusNameMap.get(report.status) || null;
+      }
+
+      return {
+        ...report,
+        // Preserve original fields while adding enriched data
+        attackTypeId,
+        impactId,
+        statusId
+      };
+    });
+
+    return {
+      ...response,
+      data: enrichedReports
+    };
   }
 
   async getReportById(id: number): Promise<Report> {
-    try {
-      // Try the existing reportes endpoint first
-      return await this.request<Report>(`/reportes/${id}`);
-    } catch (error) {
-      // Fallback to admin-specific endpoint if it exists
-      console.warn('Falling back to /admin/reports/{id} endpoint');
-      return this.request<Report>(`/admin/reports/${id}`);
-    }
+    // Use admin-specific endpoint for consistent data transformation
+    return this.request<Report>(`/admin/reports/${id}`);
   }
 
   async updateReportStatus(id: number, updateData: UpdateStatusRequest): Promise<Report> {
@@ -241,7 +416,7 @@ class AdminAPIService {
         ...report,
         highlights: filters.query ? {
           description: [filters.query],
-          location: report.location.toLowerCase().includes(filters.query.toLowerCase()) ? [filters.query] : undefined
+          location: report.attack_origin?.toLowerCase().includes(filters.query.toLowerCase()) ? [filters.query] : undefined
         } : undefined,
         score: filters.query ? this.calculateBasicScore(report, filters.query) : undefined
       }));
@@ -257,8 +432,8 @@ class AdminAPIService {
     let score = 0;
     const lowerQuery = query.toLowerCase();
 
-    if (report.location.toLowerCase().includes(lowerQuery)) score += 0.5;
-    if (report.attackType.toLowerCase().includes(lowerQuery)) score += 0.3;
+    if (report.attack_origin?.toLowerCase().includes(lowerQuery)) score += 0.5;
+    if (report.attack_type.toLowerCase().includes(lowerQuery)) score += 0.3;
     if (report.id.toString().includes(query)) score += 0.2;
 
     return Math.min(score, 1.0);

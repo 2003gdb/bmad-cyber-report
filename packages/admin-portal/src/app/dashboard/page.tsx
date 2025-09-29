@@ -11,11 +11,14 @@ import TrendsAnalysis from '../../components/Dashboard/TrendsAnalysis';
 import { adminAPIService } from '../../services/AdminAPIService';
 import { EnhancedDashboardMetrics } from '../../types';
 import { es } from '../../locales/es';
+import { CatalogProvider, useCatalogContext } from '../../contexts/CatalogContext';
 
-export default function DashboardPage() {
+function DashboardContent() {
   const [enhancedMetrics, setEnhancedMetrics] = useState<EnhancedDashboardMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const { loading: catalogLoading, error: catalogError } = useCatalogContext();
 
   useEffect(() => {
     loadDashboardData();
@@ -26,7 +29,7 @@ export default function DashboardPage() {
       setIsLoading(true);
       setError(null);
 
-      // Load enhanced metrics
+      // Load enhanced metrics - AdminAPIService will now enrich data with catalog names
       const enhancedData = await adminAPIService.getEnhancedDashboardMetrics();
       setEnhancedMetrics(enhancedData);
     } catch (error) {
@@ -36,18 +39,64 @@ export default function DashboardPage() {
     }
   };
 
+  // Show catalog loading state
+  if (catalogLoading) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen">
+          <Header />
+          <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <div className="px-4 py-6 sm:px-0">
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin h-8 w-8 border-b-2 border-safetrade-orange"></div>
+                <span className="ml-3 text-safetrade-dark">Cargando configuración del sistema...</span>
+              </div>
+            </div>
+          </main>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
+  // Show catalog error state
+  if (catalogError) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen">
+          <Header />
+          <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <div className="px-4 py-6 sm:px-0">
+              <div className="rounded-md bg-red-50 p-4">
+                <div className="flex">
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">
+                      Error al cargar la configuración del sistema
+                    </h3>
+                    <div className="mt-2 text-sm text-red-700">
+                      <p>{catalogError}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <Header />
 
         <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           {/* Page Header */}
           <div className="px-4 py-6 sm:px-0">
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-safetrade-dark">
               {es.dashboard.title}
             </h1>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-safetrade-dark/70">
               {es.dashboard.welcome}
             </p>
           </div>
@@ -70,7 +119,7 @@ export default function DashboardPage() {
                   <div className="ml-auto pl-3">
                     <button
                       onClick={loadDashboardData}
-                      className="bg-red-50 rounded-md p-1.5 text-red-500 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-red-50 focus:ring-red-600"
+                      className="bg-red-50 p-1.5 text-red-500 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-red-50 focus:ring-red-600"
                     >
                       <span className="sr-only">Reintentar</span>
                       <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -125,15 +174,15 @@ export default function DashboardPage() {
 
           {/* Quick Actions */}
           <div className="px-4 sm:px-0 mt-8">
-            <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="bg-white/70 backdrop-blur-sm overflow-hidden shadow border border-safetrade-blue/30">
               <div className="p-6">
-                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                <h3 className="text-lg leading-6 font-medium text-safetrade-dark mb-4">
                   Acciones Rápidas
                 </h3>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <a
                     href="/reports"
-                    className="block p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="block p-4 border border-safetrade-blue/30 hover:bg-safetrade-blue/10 transition-colors"
                   >
                     <div className="flex items-center">
                       <div className="flex-shrink-0">
@@ -142,15 +191,15 @@ export default function DashboardPage() {
                         </svg>
                       </div>
                       <div className="ml-4">
-                        <h4 className="text-sm font-medium text-gray-900">Ver Todos los Reportes</h4>
-                        <p className="text-sm text-gray-500">Gestionar reportes de incidentes</p>
+                        <h4 className="text-sm font-medium text-safetrade-dark">Ver Todos los Reportes</h4>
+                        <p className="text-sm text-safetrade-dark/60">Gestionar reportes de incidentes</p>
                       </div>
                     </div>
                   </a>
 
                   <button
                     onClick={loadDashboardData}
-                    className="block p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                    className="block p-4 border border-safetrade-blue/30 hover:bg-safetrade-blue/10 transition-colors text-left"
                   >
                     <div className="flex items-center">
                       <div className="flex-shrink-0">
@@ -159,8 +208,8 @@ export default function DashboardPage() {
                         </svg>
                       </div>
                       <div className="ml-4">
-                        <h4 className="text-sm font-medium text-gray-900">Actualizar Datos</h4>
-                        <p className="text-sm text-gray-500">Refrescar métricas del panel</p>
+                        <h4 className="text-sm font-medium text-safetrade-dark">Actualizar Datos</h4>
+                        <p className="text-sm text-safetrade-dark/60">Refrescar métricas del panel</p>
                       </div>
                     </div>
                   </button>
@@ -171,5 +220,13 @@ export default function DashboardPage() {
         </main>
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <CatalogProvider>
+      <DashboardContent />
+    </CatalogProvider>
   );
 }

@@ -28,6 +28,9 @@ export interface ReportSummary {
   is_anonymous: boolean;
   user_id: number | null;
   attack_origin: string;
+  evidence_url: string | null;
+  suspicious_url: string | null;
+  message_content: string | null;
   created_at: string;
 }
 
@@ -39,11 +42,12 @@ export interface Report {
   impact_level: string;
   description: string;
   attack_origin: string;
-  device_info: string | null;
+  evidence_url: string | null;
+  suspicious_url: string | null;
+  message_content: string | null;
   is_anonymous: boolean;
   status: string;
   admin_notes: string | null;
-  evidence_urls: string[];
   created_at: string;
   updated_at: string;
 }

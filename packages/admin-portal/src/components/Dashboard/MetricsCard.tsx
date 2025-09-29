@@ -4,26 +4,34 @@ interface MetricsCardProps {
   title: string;
   value: number | string;
   icon: React.ReactNode;
-  color?: 'blue' | 'green' | 'yellow' | 'red';
+  color?: 'blue' | 'green' | 'yellow' | 'red' | 'purple' | 'indigo' | 'gray' | 'teal';
 }
 
 export default function MetricsCard({ title, value, icon, color = 'blue' }: MetricsCardProps) {
   const colorClasses = {
-    blue: 'bg-blue-50 text-blue-700 border-blue-200',
-    green: 'bg-green-50 text-green-700 border-green-200',
-    yellow: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-    red: 'bg-red-50 text-red-700 border-red-200',
+    blue: 'bg-safetrade-blue/10 text-safetrade-dark border-safetrade-blue/30',
+    green: 'bg-status-accepted/10 text-safetrade-dark border-status-accepted/30',
+    yellow: 'bg-status-progress/10 text-safetrade-dark border-status-progress/30',
+    red: 'bg-status-rejected/10 text-safetrade-dark border-status-rejected/30',
+    purple: 'bg-purple-50 text-safetrade-dark border-purple-200',
+    indigo: 'bg-indigo-50 text-safetrade-dark border-indigo-200',
+    gray: 'bg-gray-50 text-safetrade-dark border-gray-200',
+    teal: 'bg-teal-50 text-safetrade-dark border-teal-200',
   };
 
   const iconColorClasses = {
-    blue: 'text-blue-600',
-    green: 'text-green-600',
-    yellow: 'text-yellow-600',
-    red: 'text-red-600',
+    blue: 'text-safetrade-blue',
+    green: 'text-status-accepted',
+    yellow: 'text-status-progress',
+    red: 'text-status-rejected',
+    purple: 'text-purple-600',
+    indigo: 'text-indigo-600',
+    gray: 'text-gray-600',
+    teal: 'text-teal-600',
   };
 
   return (
-    <div className={`bg-white overflow-hidden shadow rounded-lg border ${colorClasses[color]}`}>
+    <div className={`bg-white/70 backdrop-blur-sm overflow-hidden shadow border ${colorClasses[color]}`}>
       <div className="p-5">
         <div className="flex items-center">
           <div className="flex-shrink-0">
@@ -33,10 +41,10 @@ export default function MetricsCard({ title, value, icon, color = 'blue' }: Metr
           </div>
           <div className="ml-5 w-0 flex-1">
             <dl>
-              <dt className="text-sm font-medium text-gray-500 truncate">
+              <dt className="text-sm font-medium text-safetrade-dark/70 truncate">
                 {title}
               </dt>
-              <dd className="text-lg font-medium text-gray-900">
+              <dd className="text-lg font-medium text-safetrade-dark">
                 {value}
               </dd>
             </dl>
