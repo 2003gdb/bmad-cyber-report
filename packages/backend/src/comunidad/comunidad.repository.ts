@@ -40,12 +40,12 @@ export class ComunidadRepository {
     async getImpactLevelTrends(days: number = 30): Promise<TrendData[]> {
         const sql = `
             SELECT
-                impact_level as attack_type,
+                impact as attack_type,
                 COUNT(*) as count,
                 ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM reports WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY))), 2) as percentage
             FROM reports
             WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-            GROUP BY impact_level
+            GROUP BY impact
             ORDER BY count DESC
         `;
         const [rows] = await this.db.getPool().query(sql, [days, days]);
@@ -87,10 +87,10 @@ export class ComunidadRepository {
         const [mostCommonRows] = await this.db.getPool().query(mostCommonSql, [days]);
         const mostCommon = (mostCommonRows as { attack_type: string; count: number }[])[0];
 
-        // High impact reports
+        // High impact reports (impact IDs: 2=robo_datos, 3=robo_dinero, 4=cuenta_comprometida)
         const highImpactSql = `
             SELECT COUNT(*) as count FROM reports
-            WHERE impact_level IN ('robo_datos', 'robo_dinero', 'cuenta_comprometida')
+            WHERE impact IN (2, 3, 4)
             AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
         `;
         const [highImpactRows] = await this.db.getPool().query(highImpactSql, [days]);
@@ -117,17 +117,17 @@ export class ComunidadRepository {
         };
     }
 
-    async getSimilarReports(attackType: string, impactLevel: string, limit: number = 5): Promise<unknown[]> {
+    async getSimilarReports(attackType: number, impactLevel: number, limit: number = 5): Promise<unknown[]> {
         const sql = `
             SELECT
                 id,
                 attack_type,
-                impact_level,
+                impact,
                 description,
                 created_at,
                 CASE WHEN is_anonymous = TRUE THEN 'Anónimo' ELSE 'Usuario registrado' END as reporter_type
             FROM reports
-            WHERE attack_type = ? AND impact_level = ?
+            WHERE attack_type = ? AND impact = ?
             AND created_at >= DATE_SUB(NOW(), INTERVAL 90 DAY)
             ORDER BY created_at DESC
             LIMIT ?

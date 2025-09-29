@@ -13,6 +13,8 @@ struct Report: Codable, Identifiable {
     let description: String?
     let isAnonymous: Bool
     let status: String // String value from backend catalog
+    let evidenceUrl: String? // NEW: URL to uploaded evidence
+    let adminNotes: String? // NEW: Admin investigation notes
     let createdAt: Date
     let updatedAt: Date
 
@@ -29,6 +31,8 @@ struct Report: Codable, Identifiable {
         case description
         case isAnonymous = "is_anonymous"
         case status
+        case evidenceUrl = "evidence_url"
+        case adminNotes = "admin_notes"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -36,7 +40,8 @@ struct Report: Codable, Identifiable {
     // Explicit initializer for creating instances programmatically
     init(id: Int, userId: Int?, attackType: String, incidentDate: String, incidentTime: String?,
          attackOrigin: String, suspiciousUrl: String?, messageContent: String?, impactLevel: String,
-         description: String?, isAnonymous: Bool, status: String, createdAt: Date, updatedAt: Date) {
+         description: String?, isAnonymous: Bool, status: String, evidenceUrl: String? = nil,
+         adminNotes: String? = nil, createdAt: Date, updatedAt: Date) {
         self.id = id
         self.userId = userId
         self.attackType = attackType
@@ -49,8 +54,17 @@ struct Report: Codable, Identifiable {
         self.description = description
         self.isAnonymous = isAnonymous
         self.status = status
+        self.evidenceUrl = evidenceUrl
+        self.adminNotes = adminNotes
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+
+    // Computed property for Date conversion
+    var incidentDateTime: Date? {
+        let dateTimeString = incidentDate + "T" + (incidentTime ?? "00:00:00")
+        let formatter = ISO8601DateFormatter()
+        return formatter.date(from: dateTimeString)
     }
 
     init(from decoder: Decoder) throws {
@@ -67,6 +81,8 @@ struct Report: Codable, Identifiable {
         description = try container.decodeIfPresent(String.self, forKey: .description)
         isAnonymous = try container.decode(Bool.self, forKey: .isAnonymous)
         status = try container.decode(String.self, forKey: .status)
+        evidenceUrl = try container.decodeIfPresent(String.self, forKey: .evidenceUrl)
+        adminNotes = try container.decodeIfPresent(String.self, forKey: .adminNotes)
 
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -242,6 +258,7 @@ struct CreateReportRequest: Codable {
     let messageContent: String?
     let impactLevel: String
     let description: String?
+    let evidenceUrl: String? // NEW: Support for evidence upload
 
     enum CodingKeys: String, CodingKey {
         case isAnonymous = "is_anonymous"
@@ -253,6 +270,7 @@ struct CreateReportRequest: Codable {
         case messageContent = "message_content"
         case impactLevel = "impact_level"
         case description
+        case evidenceUrl = "evidence_url"
     }
 }
 
@@ -322,5 +340,206 @@ struct VictimSupport: Codable {
     let title: String
     let steps: [String]
     let resources: [String]
+}
+
+// MARK: - Catalog System Models (from ReportV2)
+
+// Dynamic coding key for flexible decoding
+struct DynamicCodingKeys: CodingKey {
+    var stringValue: String
+    var intValue: Int?
+
+    init?(stringValue: String) {
+        self.stringValue = stringValue
+    }
+
+    init?(intValue: Int) {
+        return nil
+    }
+}
+
+// MARK: - Catalog Data Container
+struct CatalogData: Codable {
+    let attackTypes: [CatalogAttackType]
+    let impacts: [CatalogImpact]
+    let statuses: [CatalogStatus]
+
+    enum CodingKeys: String, CodingKey {
+        case attackTypes = "attackTypes"
+        case impacts
+        case statuses
+    }
+
+    // Custom decoder to handle both camelCase and snake_case from backend
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: DynamicCodingKeys.self)
+
+        // Try both possible keys for attack types
+        if let attackTypesArray = try? container.decode([CatalogAttackType].self, forKey: DynamicCodingKeys(stringValue: "attackTypes")!) {
+            self.attackTypes = attackTypesArray
+        } else if let attackTypesArray = try? container.decode([CatalogAttackType].self, forKey: DynamicCodingKeys(stringValue: "attack_types")!) {
+            self.attackTypes = attackTypesArray
+        } else {
+            throw DecodingError.keyNotFound(
+                DynamicCodingKeys(stringValue: "attackTypes")!,
+                DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Missing attackTypes or attack_types")
+            )
+        }
+
+        self.impacts = try container.decode([CatalogImpact].self, forKey: DynamicCodingKeys(stringValue: "impacts")!)
+        self.statuses = try container.decode([CatalogStatus].self, forKey: DynamicCodingKeys(stringValue: "statuses")!)
+    }
+}
+
+// MARK: - Catalog Item Models
+struct CatalogAttackType: Codable, Identifiable, Hashable {
+    let id: Int
+    let name: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, name
+    }
+}
+
+struct CatalogImpact: Codable, Identifiable, Hashable {
+    let id: Int
+    let name: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, name
+    }
+}
+
+struct CatalogStatus: Codable, Identifiable, Hashable {
+    let id: Int
+    let name: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, name
+    }
+}
+
+// MARK: - API Response Models
+struct CatalogResponse: Codable {
+    let success: Bool
+    let data: CatalogData
+
+    enum CodingKeys: String, CodingKey {
+        case success
+        case data
+    }
+}
+
+struct ReportsListResponse: Codable {
+    let data: [Report]
+    let total: Int
+    let page: Int?
+    let limit: Int?
+    let totalPages: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case data
+        case total
+        case page
+        case limit
+        case totalPages = "total_pages"
+    }
+}
+
+// MARK: - Catalog Cache Model
+struct CatalogCache: Codable {
+    let data: CatalogData
+    let lastUpdated: Date
+    let version: String
+
+    var isExpired: Bool {
+        Date().timeIntervalSince(lastUpdated) > 3600 // 1 hour
+    }
+}
+
+// MARK: - Normalized Report Model (String-based, Date for incidentDate)
+struct NormalizedReport: Codable, Identifiable {
+    let id: Int
+    let userId: Int?
+    let isAnonymous: Bool
+    let attackType: String
+    let incidentDate: Date // Date instead of String
+    let evidenceUrl: String?
+    let attackOrigin: String?
+    let suspiciousUrl: String?
+    let messageContent: String?
+    let description: String?
+    let impactLevel: String
+    let status: String
+    let adminNotes: String?
+    let createdAt: Date
+    let updatedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case isAnonymous = "is_anonymous"
+        case attackType = "attack_type"
+        case incidentDate = "incident_date"
+        case evidenceUrl = "evidence_url"
+        case attackOrigin = "attack_origin"
+        case suspiciousUrl = "suspicious_url"
+        case messageContent = "message_content"
+        case description
+        case impactLevel = "impact_level"
+        case status
+        case adminNotes = "admin_notes"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+// MARK: - Report with Details (same as NormalizedReport for now)
+typealias ReportWithDetails = NormalizedReport
+
+// MARK: - Create Report V2 DTO
+struct CreateReportV2: Codable {
+    let userId: Int?
+    let isAnonymous: Bool
+    let attackType: String
+    let incidentDate: String
+    let incidentTime: String?
+    let evidenceUrl: String?
+    let attackOrigin: String
+    let suspiciousUrl: String?
+    let messageContent: String?
+    let description: String?
+    let impactLevel: String
+
+    enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+        case isAnonymous = "is_anonymous"
+        case attackType = "attack_type"
+        case incidentDate = "incident_date"
+        case incidentTime = "incident_time"
+        case evidenceUrl = "evidence_url"
+        case attackOrigin = "attack_origin"
+        case suspiciousUrl = "suspicious_url"
+        case messageContent = "message_content"
+        case description
+        case impactLevel = "impact_level"
+    }
+
+    // Convert from CreateReportRequest
+    static func from(_ legacyRequest: CreateReportRequest, userId: Int?) -> CreateReportV2 {
+        return CreateReportV2(
+            userId: legacyRequest.isAnonymous ? nil : userId,
+            isAnonymous: legacyRequest.isAnonymous,
+            attackType: legacyRequest.attackType,
+            incidentDate: legacyRequest.incidentDate,
+            incidentTime: legacyRequest.incidentTime,
+            evidenceUrl: legacyRequest.evidenceUrl,
+            attackOrigin: legacyRequest.attackOrigin,
+            suspiciousUrl: legacyRequest.suspiciousUrl,
+            messageContent: legacyRequest.messageContent,
+            description: legacyRequest.description,
+            impactLevel: legacyRequest.impactLevel
+        )
+    }
 }
 

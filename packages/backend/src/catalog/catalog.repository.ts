@@ -7,7 +7,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { DbService } from '../db/db.service';
-import { AttackType, Impact, Status } from '../types/database.types';
+import { AttackType, Impact, Status } from './catalog.types';
 
 @Injectable()
 export class CatalogRepository {

@@ -197,27 +197,6 @@ struct CatalogHelpers {
         return catalogData.statuses.first(where: { $0.id == id })?.name
     }
 
-    /**
-     * Convert CreateReportRequest to V2 format (simplified for string-based API)
-     */
-    static func convertLegacyRequestToV2(
-        _ request: CreateReportRequest,
-        userId: Int?
-    ) -> CreateReportV2 {
-        return CreateReportV2(
-            userId: request.isAnonymous ? nil : userId,
-            isAnonymous: request.isAnonymous,
-            attackType: request.attackType, // Use string value directly
-            incidentDate: request.incidentDate, // Use string format
-            incidentTime: request.incidentTime,
-            evidenceUrl: nil, // Legacy requests don't have separate evidence URL
-            attackOrigin: request.attackOrigin,
-            suspiciousUrl: request.suspiciousUrl,
-            messageContent: request.messageContent,
-            description: request.description,
-            impactLevel: request.impactLevel // Use string value directly
-        )
-    }
 
     // MARK: - Data Sorting and Filtering
 
@@ -381,6 +360,66 @@ struct CatalogHelpers {
             return "dollarsign.circle"
         default:
             return "exclamationmark.triangle"
+        }
+    }
+}
+
+// MARK: - CatalogHelper Class (from ReportV2)
+
+/**
+ * CatalogHelper provides catalog-aware helper methods for forms and pickers
+ */
+class CatalogHelper {
+    private let catalogData: CatalogData
+
+    init(catalogData: CatalogData) {
+        self.catalogData = catalogData
+    }
+
+    // MARK: - Picker Options (String-based for backend compatibility)
+    var attackTypeOptions: [(value: String, displayName: String)] {
+        return catalogData.attackTypes.map { (value: $0.name, displayName: getAttackTypeDisplayName($0.name)) }
+    }
+
+    var impactOptions: [(value: String, displayName: String)] {
+        return catalogData.impacts.map { (value: $0.name, displayName: getImpactDisplayName($0.name)) }
+    }
+
+    var statusOptions: [(value: String, displayName: String)] {
+        return catalogData.statuses.map { (value: $0.name, displayName: getStatusDisplayName($0.name)) }
+    }
+
+    // MARK: - Display Name Helpers
+    private func getAttackTypeDisplayName(_ name: String) -> String {
+        // Convert backend values to user-friendly display names
+        switch name {
+        case "email": return "Correo Electrónico"
+        case "SMS": return "SMS"
+        case "whatsapp": return "WhatsApp"
+        case "llamada": return "Llamada Telefónica"
+        case "redes_sociales": return "Redes Sociales"
+        case "otro": return "Otro"
+        default: return name
+        }
+    }
+
+    private func getImpactDisplayName(_ name: String) -> String {
+        switch name {
+        case "ninguno": return "Sin Impacto"
+        case "robo_datos": return "Robo de Datos"
+        case "robo_dinero": return "Robo de Dinero"
+        case "cuenta_comprometida": return "Cuenta Comprometida"
+        default: return name
+        }
+    }
+
+    private func getStatusDisplayName(_ name: String) -> String {
+        switch name {
+        case "nuevo": return "Nuevo"
+        case "revisado": return "Revisado"
+        case "en_investigacion": return "En Investigación"
+        case "cerrado": return "Cerrado"
+        default: return name
         }
     }
 }
