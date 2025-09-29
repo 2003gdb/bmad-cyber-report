@@ -27,9 +27,9 @@ export interface EnhancedDashboardStats {
     resolved_reports: number;
     anonymous_reports: number;
     identified_reports: number;
-    status_distribution: { status: string; count: number; percentage: number }[];
-    attack_types: { attack_type: string; count: number; percentage: number }[];
-    impact_distribution: { impact_level: string; count: number; percentage: number }[];
+    status_distribution: { status: number; status_name: string; count: number; percentage: number }[];
+    attack_types: { attack_type: number; attack_type_name: string; count: number; percentage: number }[];
+    impact_distribution: { impact: number; impact_name: string; count: number; percentage: number }[];
     weekly_trends: { week_start: string; count: number }[];
     monthly_trends: { month: string; count: number }[];
     response_times: {
@@ -42,6 +42,23 @@ export interface EnhancedDashboardStats {
 export class AdminRepository {
     constructor(private readonly db: DbService) {}
 
+    // Mapping constants for ENUM to ID conversion
+    private readonly ATTACK_TYPE_MAP = {
+        'email': 1,
+        'SMS': 2,
+        'whatsapp': 3,
+        'llamada': 4,
+        'redes_sociales': 5,
+        'otro': 6
+    };
+
+    private readonly STATUS_MAP = {
+        'nuevo': 1,
+        'revisado': 2,
+        'en_investigacion': 3,
+        'cerrado': 4
+    };
+
     async getUserCount(): Promise<number> {
         const sql = `SELECT COUNT(*) as count FROM users`;
         const [rows] = await this.db.getPool().query(sql);
@@ -51,27 +68,27 @@ export class AdminRepository {
 
     async getReportStats(): Promise<ReportStats> {
         // Get total reports
-        const totalSql = `SELECT COUNT(*) as count FROM reportes`;
+        const totalSql = `SELECT COUNT(*) as count FROM reports`;
         const [totalRows] = await this.db.getPool().query(totalSql);
         const totalResult = totalRows as { count: number }[];
 
         // Get reports today
-        const todaySql = `SELECT COUNT(*) as count FROM reportes WHERE DATE(created_at) = CURDATE()`;
+        const todaySql = `SELECT COUNT(*) as count FROM reports WHERE DATE(created_at) = CURDATE()`;
         const [todayRows] = await this.db.getPool().query(todaySql);
         const todayResult = todayRows as { count: number }[];
 
         // Get critical reports (high impact)
-        const criticalSql = `SELECT COUNT(*) as count FROM reportes WHERE impact_level IN ('robo_datos', 'robo_dinero', 'cuenta_comprometida')`;
+        const criticalSql = `SELECT COUNT(*) as count FROM reports WHERE impact IN (2, 3, 4)`;
         const [criticalRows] = await this.db.getPool().query(criticalSql);
         const criticalResult = criticalRows as { count: number }[];
 
         // Get pending reports
-        const pendingSql = `SELECT COUNT(*) as count FROM reportes WHERE status = 'nuevo'`;
+        const pendingSql = `SELECT COUNT(*) as count FROM reports WHERE status = 1`;
         const [pendingRows] = await this.db.getPool().query(pendingSql);
         const pendingResult = pendingRows as { count: number }[];
 
         // Get attack types distribution
-        const attackTypesSql = `SELECT attack_type, COUNT(*) as count FROM reportes GROUP BY attack_type ORDER BY count DESC`;
+        const attackTypesSql = `SELECT attack_type, COUNT(*) as count FROM reports GROUP BY attack_type ORDER BY count DESC`;
         const [attackTypesRows] = await this.db.getPool().query(attackTypesSql);
         const attackTypes = attackTypesRows as { attack_type: string; count: number }[];
 
@@ -92,17 +109,16 @@ export class AdminRepository {
                 r.is_anonymous,
                 r.attack_type,
                 r.incident_date,
-                r.incident_time,
                 r.attack_origin,
                 r.suspicious_url,
-                r.impact_level,
+                r.impact,
                 r.status,
                 r.description,
                 r.created_at,
                 r.updated_at,
                 u.email as user_email,
                 u.name as user_name
-            FROM reportes r
+            FROM reports r
             LEFT JOIN users u ON r.user_id = u.id
             WHERE 1=1
         `;
@@ -110,13 +126,19 @@ export class AdminRepository {
         const params: (string | number)[] = [];
 
         if (filters.status) {
-            sql += ` AND r.status = ?`;
-            params.push(filters.status);
+            const statusId = this.STATUS_MAP[filters.status as 'nuevo' | 'revisado' | 'en_investigacion' | 'cerrado'];
+            if (statusId) {
+                sql += ` AND r.status = ?`;
+                params.push(statusId);
+            }
         }
 
         if (filters.attack_type) {
-            sql += ` AND r.attack_type = ?`;
-            params.push(filters.attack_type);
+            const attackTypeId = this.ATTACK_TYPE_MAP[filters.attack_type as 'email' | 'SMS' | 'whatsapp' | 'llamada' | 'redes_sociales' | 'otro'];
+            if (attackTypeId) {
+                sql += ` AND r.attack_type = ?`;
+                params.push(attackTypeId);
+            }
         }
 
         if (filters.is_anonymous !== undefined) {
@@ -142,8 +164,13 @@ export class AdminRepository {
     }
 
     async updateReportStatus(reportId: number, status: string, adminNotes?: string): Promise<Record<string, unknown> | null> {
-        let sql = `UPDATE reportes SET status = ?, updated_at = CURRENT_TIMESTAMP`;
-        const params: (string | number)[] = [status];
+        const statusId = this.STATUS_MAP[status as 'nuevo' | 'revisado' | 'en_investigacion' | 'cerrado'];
+        if (!statusId) {
+            throw new Error(`Invalid status: ${status}`);
+        }
+
+        let sql = `UPDATE reports SET status = ?, updated_at = CURRENT_TIMESTAMP`;
+        const params: (string | number)[] = [statusId];
 
         if (adminNotes) {
             sql += `, admin_notes = ?`;
@@ -170,7 +197,7 @@ export class AdminRepository {
                 r.*,
                 u.email as user_email,
                 u.name as user_name
-            FROM reportes r
+            FROM reports r
             LEFT JOIN users u ON r.user_id = u.id
             WHERE r.id = ?
         `;
@@ -181,79 +208,107 @@ export class AdminRepository {
 
     async getEnhancedDashboardStats(): Promise<EnhancedDashboardStats> {
         // Get basic counts
-        const totalSql = `SELECT COUNT(*) as count FROM reportes`;
+        const totalSql = `SELECT COUNT(*) as count FROM reports`;
         const [totalRows] = await this.db.getPool().query(totalSql);
         const totalResult = totalRows as { count: number }[];
 
         // Get reports today
-        const todaySql = `SELECT COUNT(*) as count FROM reportes WHERE DATE(created_at) = CURDATE()`;
+        const todaySql = `SELECT COUNT(*) as count FROM reports WHERE DATE(created_at) = CURDATE()`;
         const [todayRows] = await this.db.getPool().query(todaySql);
         const todayResult = todayRows as { count: number }[];
 
         // Get reports this week
-        const weekSql = `SELECT COUNT(*) as count FROM reportes WHERE YEARWEEK(created_at) = YEARWEEK(NOW())`;
+        const weekSql = `SELECT COUNT(*) as count FROM reports WHERE YEARWEEK(created_at) = YEARWEEK(NOW())`;
         const [weekRows] = await this.db.getPool().query(weekSql);
         const weekResult = weekRows as { count: number }[];
 
         // Get reports this month
-        const monthSql = `SELECT COUNT(*) as count FROM reportes WHERE YEAR(created_at) = YEAR(NOW()) AND MONTH(created_at) = MONTH(NOW())`;
+        const monthSql = `SELECT COUNT(*) as count FROM reports WHERE YEAR(created_at) = YEAR(NOW()) AND MONTH(created_at) = MONTH(NOW())`;
         const [monthRows] = await this.db.getPool().query(monthSql);
         const monthResult = monthRows as { count: number }[];
 
         // Get critical reports
-        const criticalSql = `SELECT COUNT(*) as count FROM reportes WHERE impact_level IN ('robo_datos', 'robo_dinero', 'cuenta_comprometida')`;
+        const criticalSql = `SELECT COUNT(*) as count FROM reports WHERE impact IN (2, 3, 4)`;
         const [criticalRows] = await this.db.getPool().query(criticalSql);
         const criticalResult = criticalRows as { count: number }[];
 
         // Get pending reports
-        const pendingSql = `SELECT COUNT(*) as count FROM reportes WHERE status = 'nuevo'`;
+        const pendingSql = `SELECT COUNT(*) as count FROM reports WHERE status = 1`;
         const [pendingRows] = await this.db.getPool().query(pendingSql);
         const pendingResult = pendingRows as { count: number }[];
 
         // Get resolved reports
-        const resolvedSql = `SELECT COUNT(*) as count FROM reportes WHERE status = 'cerrado'`;
+        const resolvedSql = `SELECT COUNT(*) as count FROM reports WHERE status = 4`;
         const [resolvedRows] = await this.db.getPool().query(resolvedSql);
         const resolvedResult = resolvedRows as { count: number }[];
 
         // Get anonymous vs identified reports
-        const anonymousSql = `SELECT COUNT(*) as count FROM reportes WHERE is_anonymous = true`;
+        const anonymousSql = `SELECT COUNT(*) as count FROM reports WHERE is_anonymous = true`;
         const [anonymousRows] = await this.db.getPool().query(anonymousSql);
         const anonymousResult = anonymousRows as { count: number }[];
 
-        const identifiedSql = `SELECT COUNT(*) as count FROM reportes WHERE is_anonymous = false`;
+        const identifiedSql = `SELECT COUNT(*) as count FROM reports WHERE is_anonymous = false`;
         const [identifiedRows] = await this.db.getPool().query(identifiedSql);
         const identifiedResult = identifiedRows as { count: number }[];
 
-        // Get status distribution
-        const statusSql = `SELECT status, COUNT(*) as count FROM reportes GROUP BY status`;
+        // Get status distribution with names from catalog
+        const statusSql = `
+            SELECT
+                r.status as status_id,
+                s.name as status_name,
+                COUNT(*) as count
+            FROM reports r
+            LEFT JOIN status s ON r.status = s.id
+            GROUP BY r.status, s.name
+        `;
         const [statusRows] = await this.db.getPool().query(statusSql);
-        const statusData = statusRows as { status: string; count: number }[];
+        const statusData = statusRows as { status_id: number; status_name: string; count: number }[];
 
         const totalReports = totalResult[0].count;
         const statusDistribution = statusData.map(row => ({
-            status: row.status,
+            status: row.status_id,
+            status_name: row.status_name || 'Desconocido',
             count: row.count,
             percentage: totalReports > 0 ? Math.round((row.count / totalReports) * 100) : 0
         }));
 
-        // Get attack types distribution
-        const attackTypesSql = `SELECT attack_type, COUNT(*) as count FROM reportes GROUP BY attack_type ORDER BY count DESC`;
+        // Get attack types distribution with names from catalog
+        const attackTypesSql = `
+            SELECT
+                r.attack_type as attack_type_id,
+                at.name as attack_type_name,
+                COUNT(*) as count
+            FROM reports r
+            LEFT JOIN attack_types at ON r.attack_type = at.id
+            GROUP BY r.attack_type, at.name
+            ORDER BY count DESC
+        `;
         const [attackTypesRows] = await this.db.getPool().query(attackTypesSql);
-        const attackTypesData = attackTypesRows as { attack_type: string; count: number }[];
+        const attackTypesData = attackTypesRows as { attack_type_id: number; attack_type_name: string; count: number }[];
 
         const attackTypes = attackTypesData.map(row => ({
-            attack_type: row.attack_type,
+            attack_type: row.attack_type_id,
+            attack_type_name: row.attack_type_name || 'Desconocido',
             count: row.count,
             percentage: totalReports > 0 ? Math.round((row.count / totalReports) * 100) : 0
         }));
 
-        // Get impact distribution
-        const impactSql = `SELECT impact_level, COUNT(*) as count FROM reportes GROUP BY impact_level`;
+        // Get impact distribution with names from catalog
+        const impactSql = `
+            SELECT
+                r.impact as impact_id,
+                i.name as impact_name,
+                COUNT(*) as count
+            FROM reports r
+            LEFT JOIN impacts i ON r.impact = i.id
+            GROUP BY r.impact, i.name
+        `;
         const [impactRows] = await this.db.getPool().query(impactSql);
-        const impactData = impactRows as { impact_level: string; count: number }[];
+        const impactData = impactRows as { impact_id: number; impact_name: string; count: number }[];
 
         const impactDistribution = impactData.map(row => ({
-            impact_level: row.impact_level,
+            impact: row.impact_id,
+            impact_name: row.impact_name || 'Desconocido',
             count: row.count,
             percentage: totalReports > 0 ? Math.round((row.count / totalReports) * 100) : 0
         }));
@@ -263,7 +318,7 @@ export class AdminRepository {
             SELECT
                 DATE(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY)) as week_start,
                 COUNT(*) as count
-            FROM reportes
+            FROM reports
             WHERE created_at >= DATE_SUB(NOW(), INTERVAL 8 WEEK)
             GROUP BY week_start
             ORDER BY week_start DESC
@@ -276,7 +331,7 @@ export class AdminRepository {
             SELECT
                 DATE_FORMAT(created_at, '%Y-%m') as month,
                 COUNT(*) as count
-            FROM reportes
+            FROM reports
             WHERE created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
             GROUP BY month
             ORDER BY month DESC
@@ -288,8 +343,8 @@ export class AdminRepository {
         const responseTimesSql = `
             SELECT
                 AVG(DATEDIFF(updated_at, created_at)) as avg_resolution_time
-            FROM reportes
-            WHERE status = 'cerrado' AND updated_at IS NOT NULL
+            FROM reports
+            WHERE status = 4 AND updated_at IS NOT NULL
         `;
         const [responseRows] = await this.db.getPool().query(responseTimesSql);
         const responseResult = responseRows as { avg_resolution_time: number }[];

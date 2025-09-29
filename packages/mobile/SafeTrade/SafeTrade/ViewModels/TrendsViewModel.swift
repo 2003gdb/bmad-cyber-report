@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Combine
 
 class TrendsViewModel: ObservableObject {
     @Published var trendsData: CommunityTrendsData?
@@ -8,12 +9,30 @@ class TrendsViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var selectedPeriod: TrendPeriod = .thirtyDays
     @Published var showingPeriodPicker = false
+    @Published var catalogData: CatalogData?
 
     private let communityService = CommunityService()
+    private let catalogService = CatalogService.shared
 
     init() {
-        loadTrends()
-        loadCommunityAlert()
+        Task { @MainActor in
+            // Subscribe to catalog updates
+            catalogService.$catalogData
+                .assign(to: \.catalogData, on: self)
+                .store(in: &cancellables)
+
+            await loadCatalogData()
+            loadTrends()
+            loadCommunityAlert()
+        }
+    }
+
+    private var cancellables = Set<AnyCancellable>()
+
+    // MARK: - Catalog Loading
+
+    private func loadCatalogData() async {
+        await catalogService.ensureCatalogsLoaded()
     }
 
     // MARK: - Data Loading
@@ -36,7 +55,7 @@ class TrendsViewModel: ObservableObject {
             } catch {
                 await MainActor.run {
                     self.isLoading = false
-                    self.errorMessage = "Error al cargar tendencias: \(error.localizedDescription)"
+                    self.errorMessage = "Error al cargar tendencias"
                 }
             }
         }
@@ -52,7 +71,7 @@ class TrendsViewModel: ObservableObject {
                     }
                 }
             } catch {
-                print("Error loading community alert: \(error.localizedDescription)")
+                print("Error loading community alert")
             }
         }
     }
@@ -136,24 +155,58 @@ class TrendsViewModel: ObservableObject {
 
     // MARK: - Color Helpers
     func colorForAttackType(_ attackType: String) -> Color {
-        let colors: [Color] = [.red, .orange, .blue, .purple, .green, .pink]
-        let index = abs(attackType.hashValue) % colors.count
-        return colors[index]
+        return CatalogHelpers.attackTypeColor(for: attackType)
     }
 
     func colorForImpactLevel(_ impactLevel: String) -> Color {
-        switch impactLevel.lowercased() {
-        case "sin impacto":
-            return .green
-        case "robo de datos":
-            return .orange
-        case "robo de dinero":
-            return .red
-        case "cuenta comprometida":
-            return .purple
-        default:
-            return .gray
+        return CatalogHelpers.impactColor(for: impactLevel)
+    }
+
+    func colorForStatus(_ status: String) -> Color {
+        return CatalogHelpers.statusColor(for: status)
+    }
+
+    // MARK: - Display Name Helpers
+
+    func getDisplayName(for catalogItem: String) -> String {
+        return CatalogHelpers.getLocalizedName(for: catalogItem)
+    }
+
+    func getAttackTypeDisplayName(for value: String) -> String {
+        return CatalogHelpers.getLocalizedName(for: value)
+    }
+
+    func getImpactDisplayName(for value: String) -> String {
+        return CatalogHelpers.getLocalizedName(for: value)
+    }
+
+    func getStatusDisplayName(for value: String) -> String {
+        return CatalogHelpers.getLocalizedName(for: value)
+    }
+
+    // Legacy ID-based methods (for backward compatibility if needed)
+    func getAttackTypeDisplayName(for id: Int) -> String {
+        guard let catalogData = catalogData,
+              let attackType = catalogData.attackTypes.first(where: { $0.id == id }) else {
+            return "Desconocido"
         }
+        return CatalogHelpers.getLocalizedName(for: attackType.name)
+    }
+
+    func getImpactDisplayName(for id: Int) -> String {
+        guard let catalogData = catalogData,
+              let impact = catalogData.impacts.first(where: { $0.id == id }) else {
+            return "Desconocido"
+        }
+        return CatalogHelpers.getLocalizedName(for: impact.name)
+    }
+
+    func getStatusDisplayName(for id: Int) -> String {
+        guard let catalogData = catalogData,
+              let status = catalogData.statuses.first(where: { $0.id == id }) else {
+            return "Desconocido"
+        }
+        return CatalogHelpers.getLocalizedName(for: status.name)
     }
 
     // MARK: - Percentage Formatting

@@ -27,8 +27,8 @@ export class ComunidadRepository {
             SELECT
                 attack_type,
                 COUNT(*) as count,
-                ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM reportes WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY))), 2) as percentage
-            FROM reportes
+                ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM reports WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY))), 2) as percentage
+            FROM reports
             WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
             GROUP BY attack_type
             ORDER BY count DESC
@@ -42,8 +42,8 @@ export class ComunidadRepository {
             SELECT
                 impact_level as attack_type,
                 COUNT(*) as count,
-                ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM reportes WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY))), 2) as percentage
-            FROM reportes
+                ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM reports WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY))), 2) as percentage
+            FROM reports
             WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
             GROUP BY impact_level
             ORDER BY count DESC
@@ -57,7 +57,7 @@ export class ComunidadRepository {
             SELECT
                 DATE(created_at) as date,
                 COUNT(*) as count
-            FROM reportes
+            FROM reports
             WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
             GROUP BY DATE(created_at)
             ORDER BY date ASC
@@ -69,7 +69,7 @@ export class ComunidadRepository {
     async getCommunityStats(days: number = 30): Promise<CommunityStats> {
         // Total reports in period
         const totalSql = `
-            SELECT COUNT(*) as total FROM reportes
+            SELECT COUNT(*) as total FROM reports
             WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
         `;
         const [totalRows] = await this.db.getPool().query(totalSql, [days]);
@@ -78,7 +78,7 @@ export class ComunidadRepository {
         // Most common attack type
         const mostCommonSql = `
             SELECT attack_type, COUNT(*) as count
-            FROM reportes
+            FROM reports
             WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
             GROUP BY attack_type
             ORDER BY count DESC
@@ -89,7 +89,7 @@ export class ComunidadRepository {
 
         // High impact reports
         const highImpactSql = `
-            SELECT COUNT(*) as count FROM reportes
+            SELECT COUNT(*) as count FROM reports
             WHERE impact_level IN ('robo_datos', 'robo_dinero', 'cuenta_comprometida')
             AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
         `;
@@ -101,7 +101,7 @@ export class ComunidadRepository {
             SELECT
                 COUNT(CASE WHEN is_anonymous = TRUE THEN 1 END) as anonymous_count,
                 COUNT(*) as total_count
-            FROM reportes
+            FROM reports
             WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
         `;
         const [anonymousRows] = await this.db.getPool().query(anonymousSql, [days]);
@@ -126,7 +126,7 @@ export class ComunidadRepository {
                 description,
                 created_at,
                 CASE WHEN is_anonymous = TRUE THEN 'Anónimo' ELSE 'Usuario registrado' END as reporter_type
-            FROM reportes
+            FROM reports
             WHERE attack_type = ? AND impact_level = ?
             AND created_at >= DATE_SUB(NOW(), INTERVAL 90 DAY)
             ORDER BY created_at DESC
@@ -142,7 +142,7 @@ export class ComunidadRepository {
                 attack_origin,
                 COUNT(*) as report_count,
                 GROUP_CONCAT(DISTINCT attack_type) as attack_types
-            FROM reportes
+            FROM reports
             WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
             AND attack_origin IS NOT NULL
             GROUP BY attack_origin

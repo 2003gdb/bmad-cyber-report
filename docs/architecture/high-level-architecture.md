@@ -160,9 +160,10 @@ The SafeTrade backend has been successfully restructured with the following Span
 - `GET /users/profile` - User profile (authenticated)
 
 ### Incident Reporting (Spanish Module Names)
-- `POST /reportes` - Create cybersecurity incident report (anonymous + authenticated)
-- `GET /reportes/:id` - Get specific report details
+- `POST /reportes` - Create cybersecurity incident report (anonymous + authenticated) using normalized IDs
+- `GET /reportes/:id` - Get specific report details with catalog names
 - `GET /reportes/user/mis-reportes` - User's own reports (authenticated)
+- `GET /reportes/catalogs` - Get all catalog data (attack types, impacts, statuses)
 
 ### Community Intelligence (Spanish Module Names)
 - `GET /comunidad/tendencias` - Community threat trends with Spanish translations
@@ -180,6 +181,7 @@ The SafeTrade backend has been successfully restructured with the following Span
 - **Module Reuse**: AdminModule imports and reuses UsersService and ReportesService
 - **Triple Authentication**: Anonymous, JWT user tokens, JWT admin tokens
 - **Spanish Localization**: All responses, error messages, and DTOs in Spanish
-- **File Upload Support**: Incident reports support screenshot attachments
-- **Community Intelligence**: Automated threat trend analysis and personalized recommendations
-- **Database Performance**: Direct MySQL queries with proper indexing for sub-2-second response times
+- **Normalized Database**: Catalog tables (attack_types, impacts, status) replace ENUMs for better scalability
+- **Evidence URL Support**: Simplified evidence handling through URL fields instead of file uploads
+- **Community Intelligence**: Automated threat trend analysis with catalog-based data aggregation
+- **Database Performance**: Direct MySQL queries with foreign key relationships and proper indexing

@@ -277,31 +277,8 @@ class AdminAPIService {
   }
 
   async getEnhancedDashboardMetrics(): Promise<EnhancedDashboardMetrics> {
-    // Ensure catalogs are loaded
-    await this.getCatalogs();
-    const maps = await this.getCatalogMaps();
-
-    const response = await this.request<EnhancedDashboardMetrics>('/admin/dashboard/enhanced');
-
-    // Enrich the response with catalog names if they're not already present
-    const enrichedResponse = {
-      ...response,
-      attack_types: response.attack_types?.map((item: any) => ({
-        ...item,
-        attack_type: item.attack_type_name || item.attack_type, // Ensure backward compatibility
-        attack_type_name: item.attack_type_name || maps.attackTypeMap.get(item.attack_type_id) || 'Desconocido'
-      })),
-      impact_distribution: response.impact_distribution?.map((item: any) => ({
-        ...item,
-        impact_name: item.impact_name || maps.impactMap.get(item.impact_id) || 'Desconocido'
-      })),
-      status_distribution: response.status_distribution?.map((item: any) => ({
-        ...item,
-        status_name: item.status_name || maps.statusMap.get(item.status_id) || 'Desconocido'
-      }))
-    };
-
-    return enrichedResponse;
+    // Admin endpoints return consistently enriched data
+    return await this.request<EnhancedDashboardMetrics>('/admin/dashboard/enhanced');
   }
 
   // Reports Methods
@@ -314,10 +291,6 @@ class AdminAPIService {
     dateFrom?: string;
     dateTo?: string;
   }): Promise<PaginatedResponse<ReportSummary>> {
-    // Ensure catalogs are loaded for enrichment
-    await this.getCatalogs();
-    const maps = await this.getCatalogMaps();
-
     const queryParams = new URLSearchParams();
 
     if (params?.page) queryParams.set('page', params.page.toString());
@@ -328,41 +301,11 @@ class AdminAPIService {
     if (params?.dateFrom) queryParams.set('date_from', params.dateFrom);
     if (params?.dateTo) queryParams.set('date_to', params.dateTo);
 
-    // Use standard reportes endpoint
+    // Use public reportes endpoint which provides complete data with string values
     const endpoint = `/reportes${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 
-    const response = await this.request<PaginatedResponse<ReportSummary>>(endpoint);
-
-    // Enrich reports with catalog names if they don't already have them
-    const enrichedReports = response.data.map((report: ReportSummary) => {
-      // Try to convert string attack types to IDs if they're still strings
-      let attackTypeId: number | null = null;
-      let impactId: number | null = null;
-      let statusId: number | null = null;
-
-      if (typeof report.attack_type === 'string') {
-        attackTypeId = maps.attackTypeNameMap.get(report.attack_type) || null;
-      }
-      if (typeof report.impact_level === 'string') {
-        impactId = maps.impactNameMap.get(report.impact_level) || null;
-      }
-      if (typeof report.status === 'string') {
-        statusId = maps.statusNameMap.get(report.status) || null;
-      }
-
-      return {
-        ...report,
-        // Preserve original fields while adding enriched data
-        attackTypeId,
-        impactId,
-        statusId
-      };
-    });
-
-    return {
-      ...response,
-      data: enrichedReports
-    };
+    // Reportes endpoint returns complete data with string values already
+    return await this.request<PaginatedResponse<ReportSummary>>(endpoint);
   }
 
   async getReportById(id: number): Promise<Report> {

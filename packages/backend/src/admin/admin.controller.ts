@@ -230,23 +230,6 @@ export class AdminController {
         return await this.adminService.getEnhancedDashboardStats();
     }
 
-    @Get('reportes')
-    @UseGuards(AdminAuthGuard)
-    @ApiBearerAuth()
-    @ApiQuery({ name: 'status', required: false })
-    @ApiQuery({ name: 'attack_type', required: false })
-    @ApiQuery({ name: 'date_from', required: false })
-    @ApiQuery({ name: 'date_to', required: false })
-    @ApiResponse({ status: 200, description: 'Lista de reportes obtenida exitosamente' })
-    async getReportes(@Query() filters: ReportFilterDto) {
-        const reports = await this.adminService.getFilteredReports(filters);
-        return {
-            success: true,
-            message: "Lista de reportes obtenida exitosamente",
-            reportes: reports,
-            total: (reports as unknown[]).length
-        };
-    }
 
     @Get('validate-token')
     @UseGuards(AdminAuthGuard)

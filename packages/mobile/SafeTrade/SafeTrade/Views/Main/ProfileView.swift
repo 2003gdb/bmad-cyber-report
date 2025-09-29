@@ -1,13 +1,26 @@
 import SwiftUI
+import Combine
 
 struct ProfileView: View {
     @StateObject private var authService = AuthenticationService.shared
+    @StateObject private var reportingService = ReportingService()
+    @State private var userReports: [Report] = []
+    @State private var isLoadingReports = false
+    @State private var cancellables = Set<AnyCancellable>()
 
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 // Profile Header
                 profileHeader
+
+                // Reports Status Card
+                if authService.currentUser != nil {
+                    ReportsStatusCard(
+                        reports: userReports,
+                        isLoading: isLoadingReports
+                    )
+                }
 
                 // Profile Actions
                 profileActions
@@ -16,6 +29,10 @@ struct ProfileView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 20)
+            .padding(.bottom, 20)
+        }
+        .onAppear {
+            loadUserReports()
         }
     }
 
@@ -64,29 +81,36 @@ struct ProfileView: View {
             }
 
             VStack(spacing: 12) {
-                // Account Settings (Placeholder)
-                ProfileActionRow(
-                    icon: "gear",
-                    title: "Configuración de Cuenta",
-                    subtitle: "Próximamente disponible",
-                    action: { }
-                )
+                // Account Settings
+                NavigationLink(destination: AccountSettingsView()) {
+                    HStack(spacing: 16) {
+                        Image(systemName: "gear")
+                            .font(.title2)
+                            .foregroundColor(.blue)
+                            .frame(width: 24)
 
-                // Privacy Settings (Placeholder)
-                ProfileActionRow(
-                    icon: "shield",
-                    title: "Privacidad y Seguridad",
-                    subtitle: "Próximamente disponible",
-                    action: { }
-                )
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Configuración")
+                                .font(.body)
+                                .fontWeight(.medium)
+                                .foregroundColor(.primary)
 
-                // Notifications (Placeholder)
-                ProfileActionRow(
-                    icon: "bell",
-                    title: "Notificaciones",
-                    subtitle: "Próximamente disponible",
-                    action: { }
-                )
+                            Text("Cambiar contraseña, correo y nombre")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 8)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(PlainButtonStyle())
+
 
                 Divider()
                     .padding(.vertical, 8)
@@ -108,6 +132,30 @@ struct ProfileView: View {
         .background(Color(.systemBackground))
         .cornerRadius(12)
         .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+    }
+
+    // MARK: - Reports Loading
+    private func loadUserReports() {
+        guard authService.currentUser != nil else { return }
+
+        isLoadingReports = true
+        reportingService.getUserReports()
+            .sink(
+                receiveCompletion: { completion in
+                    DispatchQueue.main.async {
+                        isLoadingReports = false
+                    }
+                    if case .failure(let error) = completion {
+                        print("❌ Failed to load user reports: \(error)")
+                    }
+                },
+                receiveValue: { reports in
+                    DispatchQueue.main.async {
+                        userReports = reports
+                    }
+                }
+            )
+            .store(in: &cancellables)
     }
 }
 

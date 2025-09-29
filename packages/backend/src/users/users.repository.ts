@@ -5,11 +5,9 @@ export type User = {
     id: number;
     email: string;
     name: string;
-    password_hash: string;
+    pass_hash: string;
     salt: string;
-    last_login: Date | null;
     created_at: Date;
-    updated_at: Date;
 };
 
 @Injectable()
@@ -17,7 +15,7 @@ export class UsersRepository{
     constructor(private readonly db: DbService) {}
 
     async createUser(email: string, name: string, password_hash: string, salt: string): Promise<User | null>{
-        const sql = `INSERT INTO users (email, name, password_hash, salt)
+        const sql = `INSERT INTO users (email, name, pass_hash, salt)
                      VALUES (?, ?, ?, ?)`;
         const [result] = await this.db.getPool().query(sql, [email, name, password_hash, salt]);
         const insertResult = result as { insertId: number };
@@ -41,16 +39,29 @@ export class UsersRepository{
     }
 
     async findAll(): Promise<User[]> {
-        const sql = `SELECT id, email, name, created_at, updated_at FROM users ORDER BY created_at DESC`;
+        const sql = `SELECT id, email, name, created_at FROM users ORDER BY created_at DESC`;
         const [rows] = await this.db.getPool().query(sql);
         return rows as User[];
     }
 
     async updateUser(id: number, updates: Partial<Pick<User, 'email' | 'name'>>): Promise<User | null> {
-        const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ');
-        const values = Object.values(updates);
+        const allowedFields: Array<keyof Pick<User, 'email' | 'name'>> = ['email', 'name'];
+        const fields: string[] = [];
+        const values: any[] = [];
 
-        const sql = `UPDATE users SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+        // Only update fields that are present and allowed
+        for (const key of allowedFields) {
+            if (key in updates && updates[key] !== undefined) {
+                fields.push(`${key} = ?`);
+                values.push(updates[key]);
+            }
+        }
+
+        if (fields.length === 0) {
+            return this.findById(id);
+        }
+
+        const sql = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
         await this.db.getPool().query(sql, [...values, id]);
 
         return this.findById(id);
@@ -63,8 +74,11 @@ export class UsersRepository{
         return deleteResult.affectedRows > 0;
     }
 
-    async updateLastLogin(id: number): Promise<void> {
-        const sql = `UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?`;
-        await this.db.getPool().query(sql, [id]);
+
+    async updatePassword(id: number, passwordHash: string, salt: string): Promise<boolean> {
+        const sql = `UPDATE users SET pass_hash = ?, salt = ? WHERE id = ?`;
+        const [result] = await this.db.getPool().query(sql, [passwordHash, salt, id]);
+        const updateResult = result as { affectedRows: number };
+        return updateResult.affectedRows > 0;
     }
 }

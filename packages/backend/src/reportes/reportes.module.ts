@@ -2,13 +2,27 @@
 import { Module } from "@nestjs/common";
 import { ReportesController } from "./reportes.controller";
 import { ReportesService } from "./reportes.service";
-import { ReportesRepository } from "./reportes.repository";
+import { ReportsRepository } from "./reports.repository";
+import { CatalogRepository } from "../catalog/catalog.repository";
 import { AdjuntosRepository } from "./adjuntos.repository";
 import { ComunidadRepository } from "src/comunidad/comunidad.repository";
+import { DbModule } from "../db/db.module";
 
 @Module({
+    imports: [DbModule],
     controllers: [ReportesController],
-    providers: [ReportesService, ReportesRepository, AdjuntosRepository, ComunidadRepository],
-    exports: [ReportesService, ReportesRepository, AdjuntosRepository], // Export for comunidad module
+    providers: [
+        ReportesService,
+        ReportsRepository,
+        CatalogRepository,
+        AdjuntosRepository,
+        ComunidadRepository
+    ],
+    exports: [
+        ReportesService,
+        ReportsRepository,
+        CatalogRepository,
+        AdjuntosRepository
+    ],
 })
 export class ReportesModule {}

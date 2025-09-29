@@ -10,13 +10,13 @@ struct ReportDraft: Codable {
 
     // Form data
     let isAnonymous: Bool
-    let selectedAttackType: String
+    let selectedAttackTypeId: Int?
+    let selectedImpactId: Int?
     let incidentDate: Date
     let incidentTime: String
     let attackOrigin: String
     let suspiciousUrl: String
     let messageContent: String
-    let selectedImpactLevel: String
     let description: String
 
     // UI state
@@ -29,13 +29,13 @@ struct ReportDraft: Codable {
         self.lastModified = Date()
 
         self.isAnonymous = viewModel.isAnonymous
-        self.selectedAttackType = viewModel.selectedAttackType.rawValue
+        self.selectedAttackTypeId = viewModel.selectedAttackTypeId
+        self.selectedImpactId = viewModel.selectedImpactId
         self.incidentDate = viewModel.incidentDate
         self.incidentTime = viewModel.incidentTime
         self.attackOrigin = viewModel.attackOrigin
         self.suspiciousUrl = viewModel.suspiciousUrl
         self.messageContent = viewModel.messageContent
-        self.selectedImpactLevel = viewModel.selectedImpactLevel.rawValue
         self.description = viewModel.description
 
         self.showAdvancedFields = showAdvancedFields
@@ -139,20 +139,14 @@ class DraftManager: ObservableObject {
     }
 
     func applyDraft(to viewModel: ReportingViewModel, draft: ReportDraft) {
-        guard let attackType = AttackType(rawValue: draft.selectedAttackType),
-              let impactLevel = ImpactLevel(rawValue: draft.selectedImpactLevel) else {
-            print("Failed to apply draft: Invalid enum values")
-            return
-        }
-
         // Apply draft data to view model
-        viewModel.selectedAttackType = attackType
+        viewModel.selectedAttackTypeId = draft.selectedAttackTypeId
+        viewModel.selectedImpactId = draft.selectedImpactId
         viewModel.incidentDate = draft.incidentDate
         viewModel.incidentTime = draft.incidentTime
         viewModel.attackOrigin = draft.attackOrigin
         viewModel.suspiciousUrl = draft.suspiciousUrl
         viewModel.messageContent = draft.messageContent
-        viewModel.selectedImpactLevel = impactLevel
         viewModel.description = draft.description
 
         print("Draft applied successfully")

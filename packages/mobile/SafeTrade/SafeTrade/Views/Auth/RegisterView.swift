@@ -11,144 +11,198 @@ struct RegisterView: View {
     @State private var isLoading = false
     @State private var errorMessage = ""
     @State private var showingError = false
+    @State private var showingLogin = false
 
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Header
-                    VStack(spacing: 16) {
-                        Image(systemName: "person.badge.plus.fill")
-                            .font(.system(size: 80))
-                            .foregroundColor(.green)
+            ZStack {
+                // Gradient background
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color(red: 161/255, green: 205/255, blue: 244/255).opacity(0.1),
+                        Color(UIColor.systemBackground)
+                    ]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
 
-                        Text("Crear Cuenta")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
+                ScrollView {
+                    VStack(spacing: 32) {
+                        // Header with Shield Icon
+                        VStack(spacing: 16) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color(red: 161/255, green: 205/255, blue: 244/255))
+                                    .frame(width: 80, height: 80)
 
-                        Text("Únete a la comunidad SafeTrade")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.top, 40)
+                                Image(systemName: "shield.fill")
+                                    .font(.system(size: 32, weight: .medium))
+                                    .foregroundColor(Color(red: 37/255, green: 40/255, blue: 61/255))
+                            }
 
-                    // Form Fields
-                    VStack(spacing: 16) {
-                        // Name Field
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Nombre Completo")
-                                .font(.headline)
-                                .foregroundColor(.primary)
+                            Text("Reportes Ciudadanos")
+                                .font(.title)
+                                .fontWeight(.semibold)
+                                .foregroundColor(Color(red: 37/255, green: 40/255, blue: 61/255))
 
-                            TextField("Tu nombre completo", text: $name)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .autocorrectionDisabled()
+                            Text("Crea tu cuenta para reportar incidentes")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
                         }
+                        .padding(.top, 40)
 
-                        // Email Field
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Correo Electrónico")
-                                .font(.headline)
-                                .foregroundColor(.primary)
+                        // Glassmorphism Card
+                        VStack(spacing: 24) {
+                            VStack(spacing: 4) {
+                                Text("Registro")
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(Color(red: 37/255, green: 40/255, blue: 61/255))
+                            }
 
-                            TextField("tu@email.com", text: $email)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .keyboardType(.emailAddress)
-                                .autocapitalization(.none)
-                                .autocorrectionDisabled()
-                        }
+                            // Form Fields
+                            VStack(spacing: 16) {
+                                // Name Field
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Nombre completo")
+                                        .font(.headline)
+                                        .foregroundColor(Color(red: 37/255, green: 40/255, blue: 61/255))
 
-                        // Password Field
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Contraseña")
-                                .font(.headline)
-                                .foregroundColor(.primary)
+                                    TextField("Ingresa tu nombre completo", text: $name)
+                                        .padding()
+                                        .background(Color.white)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(Color(red: 161/255, green: 205/255, blue: 244/255).opacity(0.3), lineWidth: 1)
+                                        )
+                                        .cornerRadius(12)
+                                        .autocorrectionDisabled()
+                                }
 
-                            SecureField("Mínimo 8 caracteres", text: $password)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                // Email Field
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Correo electrónico")
+                                        .font(.headline)
+                                        .foregroundColor(Color(red: 37/255, green: 40/255, blue: 61/255))
 
-                            if !password.isEmpty && password.count < 8 {
-                                Text("La contraseña debe tener al menos 8 caracteres")
-                                    .font(.caption)
-                                    .foregroundColor(.red)
+                                    TextField("ejemplo@correo.com", text: $email)
+                                        .padding()
+                                        .background(Color.white)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(Color(red: 161/255, green: 205/255, blue: 244/255).opacity(0.3), lineWidth: 1)
+                                        )
+                                        .cornerRadius(12)
+                                        .keyboardType(.emailAddress)
+                                        .autocapitalization(.none)
+                                        .autocorrectionDisabled()
+                                }
+
+                                // Password Field
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Contraseña")
+                                        .font(.headline)
+                                        .foregroundColor(Color(red: 37/255, green: 40/255, blue: 61/255))
+
+                                    SecureField("••••••••", text: $password)
+                                        .padding()
+                                        .background(Color.white)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(Color(red: 161/255, green: 205/255, blue: 244/255).opacity(0.3), lineWidth: 1)
+                                        )
+                                        .cornerRadius(12)
+
+                                    if !password.isEmpty && password.count < 8 {
+                                        Text("La contraseña debe tener al menos 8 caracteres")
+                                            .font(.caption)
+                                            .foregroundColor(.red)
+                                    }
+                                }
+
+                                // Confirm Password Field
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Confirmar contraseña")
+                                        .font(.headline)
+                                        .foregroundColor(Color(red: 37/255, green: 40/255, blue: 61/255))
+
+                                    SecureField("••••••••", text: $confirmPassword)
+                                        .padding()
+                                        .background(Color.white)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(Color(red: 161/255, green: 205/255, blue: 244/255).opacity(0.3), lineWidth: 1)
+                                        )
+                                        .cornerRadius(12)
+
+                                    if !confirmPassword.isEmpty && password != confirmPassword {
+                                        Text("Las contraseñas no coinciden")
+                                            .font(.caption)
+                                            .foregroundColor(.red)
+                                    }
+                                }
                             }
                         }
-
-                        // Confirm Password Field
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Confirmar Contraseña")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-
-                            SecureField("Confirma tu contraseña", text: $confirmPassword)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-
-                            if !confirmPassword.isEmpty && password != confirmPassword {
-                                Text("Las contraseñas no coinciden")
-                                    .font(.caption)
-                                    .foregroundColor(.red)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 24)
-
-                    // Terms and Conditions
-                    Text("Al registrarte, aceptas nuestros términos y condiciones de privacidad")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
+                        .padding(24)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.white.opacity(0.7))
+                                .background(.ultraThinMaterial)
+                        )
+                        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 4)
                         .padding(.horizontal, 24)
 
-                    // Register Button
-                    Button(action: {
-                        Task {
-                            await registerUser()
-                        }
-                    }) {
-                        if isLoading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                        } else {
-                            HStack {
-                                Image(systemName: "person.badge.plus")
-                                Text("Crear Cuenta")
-                                    .fontWeight(.semibold)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                        }
-                    }
-                    .background(isFormValid ? Color.green : Color.gray)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-                    .disabled(!isFormValid || isLoading)
-                    .padding(.horizontal, 24)
+                        // Terms and Conditions
+                        Text("Al registrarte, aceptas nuestros términos y condiciones de privacidad")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
 
-                    Spacer()
-                }
-            }
-            .navigationTitle("Crear Cuenta")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancelar") {
-                        presentationMode.wrappedValue.dismiss()
+                        // Register Button
+                        Button(action: {
+                            Task {
+                                await registerUser()
+                            }
+                        }) {
+                            if isLoading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                            } else {
+                                Text("Registrarse")
+                                    .fontWeight(.semibold)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                            }
+                        }
+                        .background(
+                            isFormValid ?
+                            Color(red: 245/255, green: 133/255, blue: 63/255) :
+                            Color.gray
+                        )
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                        .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+                        .disabled(!isFormValid || isLoading)
+                        .padding(.horizontal, 24)
+
+                        Spacer()
                     }
-                    .foregroundColor(.blue)
                 }
             }
+            .navigationTitle("")
+            .navigationBarHidden(true)
         }
         .alert("Error de Registro", isPresented: $showingError) {
             Button("OK") { }
         } message: {
             Text(errorMessage)
         }
-        .onChange(of: authService.isAuthenticated) {
-            if authService.isAuthenticated {
-                presentationMode.wrappedValue.dismiss()
-            }
+        .sheet(isPresented: $showingLogin) {
+            LoginView()
         }
     }
 
@@ -168,9 +222,10 @@ struct RegisterView: View {
 
         do {
             _ = try await authService.register(email: email, password: password, name: name)
-            // Success is handled by the onChange modifier
+            // Registration successful, show login view
+            showingLogin = true
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = "Error de registro"
             showingError = true
         }
 

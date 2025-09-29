@@ -5,7 +5,13 @@ struct RecommendationsData {
 
     // MARK: - Get Recommendation by Attack Type
     static func getRecommendation(for attackType: String) -> Recommendation? {
-        return recommendations[attackType]?.first
+        // Try to get specific recommendation first
+        if let recommendation = recommendations[attackType]?.first {
+            return recommendation
+        }
+
+        // Fallback for invalid attack types - return general security recommendation
+        return generalRecommendation
     }
 
     static func getAllRecommendations(for attackType: String) -> [Recommendation] {
@@ -104,6 +110,14 @@ struct RecommendationsData {
             )
         ]
     ]
+
+    // MARK: - General Recommendation for Invalid Attack Types
+    private static let generalRecommendation = Recommendation(
+        id: 999,
+        attackType: "general",
+        titulo: "Mantente seguro en línea",
+        contenido: "Tu reporte ha sido enviado exitosamente. Mantén siempre actualizado tu software, usa contraseñas fuertes y únicas, y desconfía de comunicaciones no solicitadas. Gracias por ayudar a mantener segura nuestra comunidad."
+    )
 
     // MARK: - General Security Tips
     static let generalTips = [

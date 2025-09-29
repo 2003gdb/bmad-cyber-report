@@ -70,7 +70,7 @@ class AuthenticationService: ObservableObject {
             return authResponse
         } catch {
             self.isLoading = false
-            self.errorMessage = error.localizedDescription
+            self.errorMessage = "Error de autenticación"
 
             // Provide error haptic feedback
             HapticFeedback.shared.loginError()
@@ -99,23 +99,13 @@ class AuthenticationService: ObservableObject {
             // Perform registration via Model
             let authResponse = try await AuthenticationModel.register(email: email, password: password, name: name)
 
-            // Store data via Repository
-            try repository.storeToken(authResponse.accessToken)
-            try repository.storeRefreshToken(authResponse.refreshToken)
-            try repository.storeUser(authResponse.user)
-
-            // Update API service token
-            APIService.shared.setAuthToken(authResponse.accessToken)
-
-            // Update UI state
-            self.isAuthenticated = true
-            self.currentUser = authResponse.user
+            // Reset loading state without authenticating the user
             self.isLoading = false
 
             return authResponse
         } catch {
             self.isLoading = false
-            self.errorMessage = error.localizedDescription
+            self.errorMessage = "Error de registro"
             throw error
         }
     }
@@ -157,6 +147,130 @@ class AuthenticationService: ObservableObject {
         }
     }
 
+    // MARK: - Profile Management
+    func changePassword(currentPassword: String, newPassword: String, confirmPassword: String) async throws -> UpdateProfileResponse {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            // Validate inputs
+            guard !currentPassword.isEmpty else {
+                throw AuthError.invalidCredentials
+            }
+            guard AuthenticationModel.validateNewPassword(newPassword) else {
+                throw ProfileError.weakPassword
+            }
+            guard AuthenticationModel.validatePasswordConfirmation(newPassword, confirmation: confirmPassword) else {
+                throw ProfileError.passwordMismatch
+            }
+
+            // Perform password change via Model
+            let response = try await AuthenticationModel.changePassword(
+                currentPassword: currentPassword,
+                newPassword: newPassword
+            )
+
+            self.isLoading = false
+
+            // Provide success haptic feedback
+            HapticFeedback.shared.loginSuccess()
+
+            return response
+        } catch {
+            self.isLoading = false
+            self.errorMessage = "Error al cambiar contraseña"
+
+            // Provide error haptic feedback
+            HapticFeedback.shared.loginError()
+
+            throw error
+        }
+    }
+
+    func updateEmail(newEmail: String, password: String) async throws -> UpdateProfileResponse {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            // Validate inputs
+            guard AuthenticationModel.validateEmail(newEmail) else {
+                throw ProfileError.invalidEmail
+            }
+            guard !password.isEmpty else {
+                throw AuthError.invalidCredentials
+            }
+
+            // Perform email update via Model
+            let response = try await AuthenticationModel.updateEmail(
+                newEmail: newEmail,
+                password: password
+            )
+
+            // Update current user if successful
+            if let updatedUser = response.user {
+                try repository.storeUser(updatedUser)
+                self.currentUser = updatedUser
+            }
+
+            self.isLoading = false
+
+            // Provide success haptic feedback
+            HapticFeedback.shared.loginSuccess()
+
+            return response
+        } catch {
+            self.isLoading = false
+            self.errorMessage = "Error al actualizar correo"
+
+            // Provide error haptic feedback
+            HapticFeedback.shared.loginError()
+
+            throw error
+        }
+    }
+
+    func updateName(newName: String, password: String) async throws -> UpdateProfileResponse {
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            // Validate inputs
+            guard AuthenticationModel.validateName(newName) else {
+                throw ProfileError.invalidName
+            }
+            guard !password.isEmpty else {
+                throw AuthError.invalidCredentials
+            }
+
+            // Perform name update via Model
+            let response = try await AuthenticationModel.updateName(
+                newName: newName,
+                password: password
+            )
+
+            // Update current user if successful
+            if let updatedUser = response.user {
+                try repository.storeUser(updatedUser)
+                self.currentUser = updatedUser
+            }
+
+            self.isLoading = false
+
+            // Provide success haptic feedback
+            HapticFeedback.shared.loginSuccess()
+
+            return response
+        } catch {
+            self.isLoading = false
+            self.errorMessage = "Error al actualizar nombre"
+
+            // Provide error haptic feedback
+            HapticFeedback.shared.loginError()
+
+            throw error
+        }
+    }
+
     // MARK: - Convenience Methods
     func clearError() {
         errorMessage = nil
@@ -184,6 +298,26 @@ enum AuthError: Error, LocalizedError {
             return "Credenciales inválidas"
         case .networkError:
             return "Error de conexión"
+        }
+    }
+}
+
+enum ProfileError: Error, LocalizedError {
+    case weakPassword
+    case passwordMismatch
+    case invalidEmail
+    case invalidName
+
+    var errorDescription: String? {
+        switch self {
+        case .weakPassword:
+            return "La contraseña debe tener al menos 8 caracteres, incluyendo mayúsculas, minúsculas y números"
+        case .passwordMismatch:
+            return "Las contraseñas no coinciden"
+        case .invalidEmail:
+            return "El formato del correo electrónico es inválido"
+        case .invalidName:
+            return "El nombre debe tener al menos 2 caracteres"
         }
     }
 }

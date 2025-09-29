@@ -17,7 +17,7 @@ class UserPreferencesService {
 
     // MARK: - Attack Type Preferences
 
-    func recordAttackTypeUsage(_ attackType: AttackType) {
+    func recordAttackTypeUsage(_ attackType: LegacyAttackType) {
         var recentTypes = getRecentAttackTypes()
 
         // Remove if already exists to avoid duplicates
@@ -39,28 +39,28 @@ class UserPreferencesService {
         return userDefaults.stringArray(forKey: Keys.recentAttackTypes) ?? []
     }
 
-    func getMostUsedAttackType() -> AttackType? {
+    func getMostUsedAttackType() -> LegacyAttackType? {
         let recentTypes = getRecentAttackTypes()
         guard let mostRecentType = recentTypes.first,
-              let attackType = AttackType(rawValue: mostRecentType) else {
+              let attackType = LegacyAttackType(rawValue: mostRecentType) else {
             return nil
         }
         return attackType
     }
 
-    func getSuggestedAttackTypes() -> [AttackType] {
+    func getSuggestedAttackTypes() -> [LegacyAttackType] {
         let recentTypes = getRecentAttackTypes()
-        var suggestions: [AttackType] = []
+        var suggestions: [LegacyAttackType] = []
 
         // Add recent types first
         for typeString in recentTypes {
-            if let attackType = AttackType(rawValue: typeString) {
+            if let attackType = LegacyAttackType(rawValue: typeString) {
                 suggestions.append(attackType)
             }
         }
 
         // Add remaining types that haven't been used recently
-        let allTypes = AttackType.allCases
+        let allTypes = LegacyAttackType.allCases
         for attackType in allTypes {
             if !suggestions.contains(attackType) {
                 suggestions.append(attackType)
@@ -97,7 +97,7 @@ class UserPreferencesService {
         return userDefaults.stringArray(forKey: Keys.recentAttackOrigins) ?? []
     }
 
-    func getAttackOriginSuggestions(for attackType: AttackType) -> [String] {
+    func getAttackOriginSuggestions(for attackType: LegacyAttackType) -> [String] {
         let recentOrigins = getRecentAttackOrigins()
 
         // Filter suggestions based on attack type pattern
@@ -117,13 +117,13 @@ class UserPreferencesService {
 
     // MARK: - Impact Level Preferences
 
-    func recordImpactLevelUsage(_ impactLevel: ImpactLevel) {
+    func recordImpactLevelUsage(_ impactLevel: LegacyImpactLevel) {
         userDefaults.set(impactLevel.rawValue, forKey: Keys.preferredImpactLevel)
     }
 
-    func getPreferredImpactLevel() -> ImpactLevel? {
+    func getPreferredImpactLevel() -> LegacyImpactLevel? {
         guard let levelString = userDefaults.string(forKey: Keys.preferredImpactLevel),
-              let impactLevel = ImpactLevel(rawValue: levelString) else {
+              let impactLevel = LegacyImpactLevel(rawValue: levelString) else {
             return nil
         }
         return impactLevel

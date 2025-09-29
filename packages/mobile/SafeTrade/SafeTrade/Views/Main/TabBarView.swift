@@ -5,21 +5,22 @@ struct TabBarView: View {
     @State private var selectedTab: TabItem = .trends
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            // Main Content
+        ZStack {
             tabContent
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            // Custom Tab Bar with Center + Button
-            customTabBarWithCenterButton
-        }
-        .sheet(isPresented: $navigationModel.showingReportSelection) {
-            ReportSelectionView {
-                navigationModel.hideReportSelection()
+            VStack {
+                Spacer()
+                customTabBarWithCenterButton
+                    .background(.ultraThinMaterial)
             }
-            .presentationDetents([.height(300)])
-            .presentationDragIndicator(.visible)
         }
+            .sheet(isPresented: $navigationModel.showingReportSelection) {
+                ReportSelectionView {
+                    navigationModel.hideReportSelection()
+                }
+                .presentationDetents([.height(300)])
+                .presentationDragIndicator(.visible)
+            }
     }
 
     // MARK: - Tab Content
@@ -29,7 +30,7 @@ struct TabBarView: View {
         case .trends:
             NavigationView {
                 TrendsView()
-                    .navigationTitle("Tendencias")
+                    .navigationTitle("Reportes")
                     .navigationBarTitleDisplayMode(.large)
             }
         case .profile:
@@ -64,12 +65,11 @@ struct TabBarView: View {
             }) {
                 ZStack {
                     Circle()
-                        .fill(Color.orange)
-                        .frame(width: 56, height: 56)
-                        .shadow(color: .orange.opacity(0.3), radius: 8, x: 0, y: 4)
+                        .fill(DesignSystem.Colors.safetradeOrange)
+                        .frame(width: 48, height: 48)
 
                     Image(systemName: "plus")
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(size: 22, weight: .bold))
                         .foregroundColor(.white)
                 }
             }
@@ -88,16 +88,8 @@ struct TabBarView: View {
                 HapticFeedback.shared.selectionChanged()
             }
         }
-        .padding(.horizontal, 32)
-        .padding(.top, 16)
-        .padding(.bottom, 8)
-        .background(
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .background(Color.white)
-                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: -2)
-        )
-        .ignoresSafeArea(.all, edges: .bottom)
+        .padding(.top, 18)
+        .padding(.bottom, -12)
     }
 
 }
@@ -113,12 +105,12 @@ struct CustomTabBarItem: View {
             VStack(spacing: 4) {
                 Image(systemName: tab.icon)
                     .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(isSelected ? .blue : .gray)
+                    .foregroundColor(isSelected ? DesignSystem.Colors.safetradeOrange : .gray)
 
                 Text(tab.title)
                     .font(.caption2)
                     .fontWeight(.medium)
-                    .foregroundColor(isSelected ? .blue : .gray)
+                    .foregroundColor(isSelected ? DesignSystem.Colors.safetradeOrange : .gray)
             }
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
@@ -160,7 +152,7 @@ struct ReportSelectionView: View {
                     }) {
                         CompactReportTypeRow(
                             icon: "person.fill.badge.plus",
-                            title: "Reporte Identificado",
+                            title: "Reporte con Identificacion",
                             subtitle: "Se asociará con tu cuenta"
                         )
                     }
@@ -192,20 +184,15 @@ struct ReportSelectionView: View {
             .navigationBarHidden(true)
         }
         .navigationViewStyle(StackNavigationViewStyle())
-        .fullScreenCover(isPresented: $showingIdentifiedReport) {
-            NavigationView {
-                ReportSubmissionView(isAnonymous: false)
-            }
+        .fullScreenCover(isPresented:$showingIdentifiedReport) {
+            ReportSubmissionView(isAnonymous: false)
         }
         .fullScreenCover(isPresented: $showingAnonymousReport) {
-            NavigationView {
-                ReportSubmissionView(isAnonymous: true)
-            }
+            ReportSubmissionView(isAnonymous: true)
         }
     }
 }
 
-// MARK: - Compact Report Type Row
 struct CompactReportTypeRow: View {
     let icon: String
     let title: String

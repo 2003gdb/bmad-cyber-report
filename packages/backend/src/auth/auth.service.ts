@@ -25,8 +25,6 @@ export class AuthService {
             const token = await this.tokenService.generateAccessToken(userProfile);
             const refreshToken = await this.tokenService.generateRefreshToken(userProfile);
 
-            // Update last login timestamp
-            await this.usersService.updateLastLogin(user.id);
 
             return {
                 access_token: token,
@@ -48,9 +46,6 @@ export class AuthService {
 
             const token = await this.tokenService.generateAdminToken(adminProfile);
             const refreshToken = await this.tokenService.generateRefreshToken(adminProfile);
-
-            // Update last login
-            await this.adminRepository.updateLastLogin(admin.id);
 
             return {
                 access_token: token,

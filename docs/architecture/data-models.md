@@ -7,15 +7,44 @@
 - id: INT AUTO_INCREMENT (Primary Key) - Unique user identifier
 - email: VARCHAR(255) - User email address for authentication
 - name: VARCHAR(255) - User display name
-- password_hash: VARCHAR(255) - bcrypt hashed password
+- pass_hash: VARCHAR(255) - bcrypt hashed password
 - salt: VARCHAR(255) - Unique cryptographic salt for password hashing
-- last_login: TIMESTAMP (nullable) - Last successful login timestamp
 - created_at: TIMESTAMP - Account creation timestamp
 - updated_at: TIMESTAMP - Last account modification timestamp
 
 **Relationships:**
 - One-to-Many with Reports (for identified reports only)
 - Reports can exist without User (anonymous reporting)
+
+## Catalog Models
+**Purpose:** Normalized reference tables for consistent data management
+
+### AttackType Model
+**Key Attributes:**
+- id: INT AUTO_INCREMENT (Primary Key) - Unique attack type identifier
+- name: VARCHAR(100) - Attack type name ('email', 'SMS', 'whatsapp', etc.)
+- created_at: TIMESTAMP - Creation timestamp
+
+**Relationships:**
+- One-to-Many with Reports
+
+### Impact Model
+**Key Attributes:**
+- id: INT AUTO_INCREMENT (Primary Key) - Unique impact identifier
+- name: VARCHAR(100) - Impact level name ('ninguno', 'robo_datos', etc.)
+- created_at: TIMESTAMP - Creation timestamp
+
+**Relationships:**
+- One-to-Many with Reports
+
+### Status Model
+**Key Attributes:**
+- id: INT AUTO_INCREMENT (Primary Key) - Unique status identifier
+- name: VARCHAR(100) - Status name ('nuevo', 'revisado', 'en_investigacion', 'cerrado')
+- created_at: TIMESTAMP - Creation timestamp
+
+**Relationships:**
+- One-to-Many with Reports
 
 ## Report Model
 **Purpose:** Core incident reporting data supporting both anonymous and identified submissions
@@ -24,40 +53,24 @@
 - id: INT AUTO_INCREMENT (Primary Key) - Unique report identifier
 - user_id: INT (Foreign Key, nullable) - Links to User for identified reports, NULL for anonymous
 - is_anonymous: BOOLEAN - Explicit flag for report type (true = anonymous, false = identified)
-- attack_type: ENUM - ['email', 'SMS', 'whatsapp', 'llamada', 'redes_sociales', 'otro']
-- incident_date: DATE - When the attack occurred
-- incident_time: TIME (nullable) - Time of attack occurrence
-- attack_origin: VARCHAR(255) - Phone number or email address of attacker
-- suspicious_url: TEXT (nullable) - Malicious URL if applicable
+- attack_type: INT (Foreign Key) - References attack_types.id
+- incident_date: TIMESTAMP - When the attack occurred (includes date and time)
+- attack_origin: VARCHAR(255) (nullable) - Phone number or email address of attacker
+- evidence_url: TEXT (nullable) - URL to evidence files/screenshots
+- suspicious_url: TEXT (nullable) - Malicious URL related to the attack
 - message_content: TEXT (nullable) - Original attack message content
 - description: TEXT (nullable) - Free-text detailed description
-- impact_level: ENUM - ['ninguno', 'robo_datos', 'robo_dinero', 'cuenta_comprometida']
-- status: ENUM - ['nuevo', 'revisado', 'en_investigacion', 'cerrado']
+- impact: INT (Foreign Key) - References impacts.id
+- status: INT (Foreign Key) - References status.id (defaults to 1 for 'nuevo')
 - admin_notes: TEXT (nullable) - Investigation notes
 - created_at: TIMESTAMP - Report submission timestamp
 - updated_at: TIMESTAMP - Last report modification
 
 **Relationships:**
 - Many-to-One with User (nullable for anonymous reports)
-- One-to-Many with ReportAttachments
-
-## ReportAttachment Model
-**Purpose:** File uploads (screenshots, evidence) associated with incident reports
-
-**⚠️ IMPLEMENTATION STATUS: DISABLED**
-The file upload functionality has been removed from the current implementation. The database schema is preserved for potential future reactivation, but no file processing occurs in the application layer.
-
-**Key Attributes:**
-- id: INT AUTO_INCREMENT (Primary Key) - Unique attachment identifier
-- reporte_id: INT (Foreign Key) - Links to parent Report
-- file_path: VARCHAR(500) - Server storage path
-- file_hash: VARCHAR(64) (nullable) - SHA-256 for integrity verification
-- uploaded_at: TIMESTAMP - Upload timestamp
-
-**Relationships:**
-- Many-to-One with Report
-
-**Current State:** Database table exists but is unused. Application operates as text-only reporting system.
+- Many-to-One with AttackType
+- Many-to-One with Impact
+- Many-to-One with Status
 
 ## AdminUser Model
 **Purpose:** Administrative portal access for SafeTrade company users
@@ -65,10 +78,32 @@ The file upload functionality has been removed from the current implementation. 
 **Key Attributes:**
 - id: INT AUTO_INCREMENT (Primary Key) - Unique admin identifier
 - email: VARCHAR(255) - Admin email address
-- password_hash: VARCHAR(255) - bcrypt hashed password
+- pass_hash: VARCHAR(255) - bcrypt hashed password
 - salt: VARCHAR(255) - Unique cryptographic salt for password hashing
-- last_login: TIMESTAMP (nullable) - Last login timestamp
 - created_at: TIMESTAMP - Account creation timestamp
 
 **Relationships:**
 - Independent entity (no direct relationships with user reports for privacy)
+
+## Data Model Changes
+
+### Key Improvements from Previous Version:
+
+1. **Normalized Catalog Structure**: Replaced ENUM fields with foreign key relationships to separate catalog tables
+2. **Simplified Evidence Handling**: Single `evidence_url` field replaces complex attachment table
+3. **Enhanced Timestamp Handling**: Combined `incident_date` and `incident_time` into single TIMESTAMP field
+4. **Consistent Naming**: Updated `password_hash` to `pass_hash` across User and AdminUser models
+
+### Benefits:
+
+- **Scalability**: Easy addition of new attack types, impacts, or statuses without schema changes
+- **Data Integrity**: Foreign key constraints ensure referential integrity
+- **Query Performance**: Optimized indexes on foreign key relationships
+- **Maintainability**: Centralized catalog management through dedicated tables
+- **Flexibility**: Support for future internationalization through catalog table extensions
+
+### Migration Considerations:
+
+- Existing ENUM values map directly to initial catalog table entries
+- Foreign key IDs replace string values in application logic
+- APIs maintain backward compatibility through automatic conversion layers

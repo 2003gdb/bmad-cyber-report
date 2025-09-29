@@ -33,7 +33,7 @@ export class UsersService {
             return null;
         }
 
-        const isValid = await verifyPassword(password, user.salt, user.password_hash);
+        const isValid = await verifyPassword(password, user.salt, user.pass_hash);
         return isValid ? user : null;
     }
 
@@ -45,7 +45,12 @@ export class UsersService {
         return this.usersRepository.deleteUser(id);
     }
 
-    async updateLastLogin(id: number): Promise<void> {
-        return this.usersRepository.updateLastLogin(id);
+
+    async changePassword(id: number, newPassword: string): Promise<boolean> {
+        // Generate new salt for the new password
+        const salt = generateSalt();
+        const hashed_password = await hashPassword(newPassword, salt);
+
+        return this.usersRepository.updatePassword(id, hashed_password, salt);
     }
 }

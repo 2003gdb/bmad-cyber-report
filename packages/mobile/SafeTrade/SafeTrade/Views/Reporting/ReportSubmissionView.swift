@@ -14,47 +14,59 @@ struct ReportSubmissionView: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 24) {
-                    // Header Section
-                    headerSection
+                VStack(spacing: DesignSystem.Spacing.xxl) {
+                    // Report Type Indicator (static)
+                    reportTypeIndicator
 
-                    // Attack Type Section
-                    attackTypeSection
+                    // Contact Type Section (following /inpo "tipo de primer contacto")
+                    contactTypeSection
 
-                    // Incident Details Section
+                    // Conditional Contact Details (like /inpo renderContactField)
+                    conditionalContactDetailsSection
+
+                    // Incident Details Section (date/time)
                     incidentDetailsSection
 
-                    // Impact Assessment Section
+                    // Impact Assessment Section (like /inpo "¿han habido daños?")
                     impactSection
 
                     // Additional Information
                     additionalInfoSection
+
+                    // Incident Description (moved to bottom)
+                    incidentDescriptionSection
 
                     // Submit Button
                     submitButton
 
                     Spacer()
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
+                .padding(.horizontal, DesignSystem.Spacing.xl)
+                .padding(.top, DesignSystem.Spacing.sm)
+                .padding(.bottom, DesignSystem.Spacing.lg)
             }
-            .navigationTitle("Reportar Incidente")
-            .navigationBarTitleDisplayMode(.large)
+            .bmadBackgroundGradient()
+            .navigationTitle("Nuevo Reporte")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancelar") {
                         dismiss()
                     }
-                    .foregroundColor(.blue)
+                    .foregroundColor(DesignSystem.Colors.safetradeOrange)
                 }
             }
         }
         .fullScreenCover(isPresented: $viewModel.showingSuccessAlert) {
-            if let attackType = viewModel.submittedAttackType {
+            if let _ = viewModel.lastSubmittedReport,
+               let attackType = viewModel.lastSubmittedAttackType {
+                // Show recommendations view based on attack type
                 RecommendationsView(attackType: attackType) {
-                    // First dismiss the recommendations view
+                    // Close the fullScreenCover first
                     viewModel.showingSuccessAlert = false
-                    // Then dismiss the report submission view to return to main
+                    // Reset form now that we're done with the data
+                    viewModel.resetForm()
+                    // Then dismiss the report view after a small delay to avoid navigation conflicts
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         presentationMode.wrappedValue.dismiss()
                     }
@@ -68,212 +80,356 @@ struct ReportSubmissionView: View {
         }
     }
 
-    // MARK: - Header Section
-
-    private var headerSection: some View {
-        VStack(spacing: 12) {
-            // Report Type Indicator
+    // MARK: - Report Type Indicator (static display)
+    private var reportTypeIndicator: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
             HStack {
                 Image(systemName: isAnonymous ? "person.fill.questionmark" : "person.fill.badge.plus")
-                    .foregroundColor(isAnonymous ? .orange : .blue)
-                Text(isAnonymous ? "Reporte Anónimo" : "Reporte Identificado")
+                    .foregroundColor(DesignSystem.Colors.safetradeOrange)
+                Text(isAnonymous ? "Reporte Anónimo" : "Reporte con Identidad")
                     .font(.subheadline)
                     .fontWeight(.medium)
-                    .foregroundColor(isAnonymous ? .orange : .blue)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background((isAnonymous ? Color.orange : Color.blue).opacity(0.1))
-            .cornerRadius(8)
-
-            Text("Tu reporte ayuda a proteger a toda la comunidad")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-        }
-    }
-
-
-    // MARK: - Attack Type Section
-
-    private var attackTypeSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Tipo de Ataque")
-                .font(.headline)
-
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
-                ForEach(AttackType.allCases, id: \.self) { attackType in
-                    Button(action: {
-                        viewModel.selectedAttackType = attackType
-                    }) {
-                        VStack(spacing: 8) {
-                            Text(attackType.displayName)
-                                .font(.system(.subheadline, weight: .medium))
-                                .foregroundColor(viewModel.selectedAttackType == attackType ? .white : .primary)
-
-                            Text(attackType.description)
-                                .font(.caption)
-                                .foregroundColor(viewModel.selectedAttackType == attackType ? .white : .secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .padding(12)
-                        .frame(maxWidth: .infinity, minHeight: 80)
-                        .background(viewModel.selectedAttackType == attackType ? Color.blue : Color(.systemGray6))
-                        .cornerRadius(12)
-                    }
-                }
+                    .foregroundColor(DesignSystem.Colors.textPrimary)
+                Spacer()
             }
         }
+        .bmadCard()
     }
 
-    // MARK: - Incident Details Section
+    // MARK: - Anonymous Toggle Section (following /inpo flow)
 
-    private var incidentDetailsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Detalles del Incidente")
-                .font(.headline)
-
-            // Date Picker
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Fecha del Incidente")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-
-                DatePicker("", selection: $viewModel.incidentDate, displayedComponents: .date)
-                    .datePickerStyle(CompactDatePickerStyle())
-            }
-
-            // Time Input (Optional)
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Hora (Opcional)")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-
-                TextField("HH:MM", text: $viewModel.incidentTime)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .keyboardType(.numbersAndPunctuation)
-            }
-
-            // Attack Origin
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Origen del Ataque *")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-
-                TextField("Correo, teléfono, o identificador del atacante", text: $viewModel.attackOrigin)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-
-                if viewModel.showValidationErrors, let error = viewModel.validateAttackOrigin() {
-                    Text(error)
-                        .font(.caption)
-                        .foregroundColor(.red)
-                }
-            }
-
-            // Suspicious URL
-            VStack(alignment: .leading, spacing: 8) {
-                Text("URL Sospechosa (Opcional)")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-
-                TextField("https://ejemplo-sospechoso.com", text: $viewModel.suspiciousUrl)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .keyboardType(.URL)
-                    .autocapitalization(.none)
-
-                if viewModel.showValidationErrors, let error = viewModel.validateSuspiciousUrl() {
-                    Text(error)
-                        .font(.caption)
-                        .foregroundColor(.red)
-                }
-            }
-        }
-    }
-
-    // MARK: - Impact Section
-
-    private var impactSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Nivel de Impacto")
-                .font(.headline)
-
-            VStack(spacing: 8) {
-                ForEach(ImpactLevel.allCases, id: \.self) { level in
-                    Button(action: {
-                        viewModel.selectedImpactLevel = level
-                    }) {
-                        HStack {
-                            Image(systemName: viewModel.selectedImpactLevel == level ? "checkmark.circle.fill" : "circle")
-                                .foregroundColor(viewModel.selectedImpactLevel == level ? .blue : .gray)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(level.displayName)
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(viewModel.selectedImpactLevel == level ? .blue : .primary)
-
-                                Text(level.description)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-
-                            Spacer()
-                        }
-                        .padding(12)
-                        .background(viewModel.selectedImpactLevel == level ? Color.blue.opacity(0.1) : Color(.systemGray6))
-                        .cornerRadius(8)
-                    }
-                }
-            }
-        }
-    }
-
-    // MARK: - Additional Information Section
-
-    private var additionalInfoSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Información Adicional")
-                .font(.headline)
-
-            // Message Content
-            VStack(alignment: .leading, spacing: 8) {
+    private var anonymousToggleSection: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+            VStack(spacing: DesignSystem.Spacing.md) {
                 HStack {
-                    Text("Contenido del Mensaje (Opcional)")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Image(systemName: "person.fill.questionmark")
+                                .foregroundColor(DesignSystem.Colors.safetradeOrange)
+                            Text("¿Reporte anónimo?")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(DesignSystem.Colors.textPrimary)
+                        }
+                        Text("Tu identidad será protegida")
+                            .font(.caption)
+                            .foregroundColor(DesignSystem.Colors.textSecondary)
+                    }
 
                     Spacer()
 
-                    Text("\(viewModel.messageContent.count)/5000")
-                        .font(.caption)
-                        .foregroundColor(viewModel.messageContent.count > 5000 ? .red : .secondary)
-                }
-
-                TextField("Describe el mensaje o comunicación recibida...", text: $viewModel.messageContent, axis: .vertical)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .lineLimit(3...6)
-                    .onChange(of: viewModel.messageContent) { _, newValue in
-                        if newValue.count > 5000 {
-                            viewModel.messageContent = String(newValue.prefix(5000))
-                        }
-                    }
-
-                if viewModel.showValidationErrors, let error = viewModel.validateMessageContent() {
-                    Text(error)
-                        .font(.caption)
-                        .foregroundColor(.red)
+                    Toggle("", isOn: .constant(isAnonymous))
+                        .disabled(true) // Cannot change once set
                 }
             }
+            .bmadToggleBackground()
+        }
+        .bmadCard()
+    }
 
-            // Description
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Descripción Detallada (Opcional)")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
 
-                TextField("Describe lo que pasó, cómo te contactaron, qué te pidieron...", text: $viewModel.description, axis: .vertical)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .lineLimit(4...8)
+    // MARK: - Incident Description Section (first in /inpo flow)
+
+    private var incidentDescriptionSection: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+            Text("Descripción del incidente")
+                .font(.headline)
+                .foregroundColor(DesignSystem.Colors.textPrimary)
+
+            TextField("Describe detalladamente lo que ocurrió...", text: $viewModel.description, axis: .vertical)
+                .lineLimit(4...8)
+                .bmadInputField()
+        }
+        .bmadCard()
+    }
+
+    // MARK: - Contact Type Section (dropdown style)
+
+    private var contactTypeSection: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+            Text("Tipo de primer contacto")
+                .font(.headline)
+                .foregroundColor(DesignSystem.Colors.textPrimary)
+
+            if viewModel.catalogLoading {
+                HStack {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("Cargando opciones...")
+                        .font(.caption)
+                        .foregroundColor(DesignSystem.Colors.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+                .background(Color(UIColor.systemGray6))
+                .cornerRadius(8)
+            } else if let catalogError = viewModel.catalogError {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Error cargando opciones")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                    Text(catalogError)
+                        .font(.caption2)
+                        .foregroundColor(DesignSystem.Colors.textSecondary)
+
+                    Button("Reintentar") {
+                        Task {
+                            await viewModel.refreshCatalogs()
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundColor(.blue)
+                    .padding(.top, 4)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+                .background(Color.red.opacity(0.1))
+                .cornerRadius(8)
+            } else if viewModel.attackTypeOptions.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("No hay opciones disponibles")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                    Text("Las opciones de tipos de contacto están vacías")
+                        .font(.caption2)
+                        .foregroundColor(DesignSystem.Colors.textSecondary)
+
+                    Button("Recargar") {
+                        Task {
+                            await viewModel.refreshCatalogs()
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundColor(.blue)
+                    .padding(.top, 4)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+                .background(Color.orange.opacity(0.1))
+                .cornerRadius(8)
+            } else {
+                Picker("Selecciona el tipo de contacto", selection: $viewModel.selectedAttackTypeId) {
+                    Text("Selecciona tipo de contacto").tag(nil as Int?)
+
+                    ForEach(viewModel.attackTypeOptions, id: \.id) { option in
+                        Text(option.displayName)
+                            .tag(option.id as Int?)
+                    }
+                }
+                .bmadPicker()
+
+            }
+        }
+        .bmadCard()
+    }
+
+    // MARK: - Conditional Contact Details (like /inpo renderContactField)
+
+    private var conditionalContactDetailsSection: some View {
+        Group {
+            if true { // Always show contact details for all attack types
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+                    Text(getContactFieldLabel())
+                        .font(.headline)
+                        .foregroundColor(DesignSystem.Colors.textPrimary)
+
+                    TextField(getContactFieldPlaceholder(), text: $viewModel.attackOrigin)
+                        .bmadInputField()
+                        .keyboardType(getKeyboardType())
+                        .textInputAutocapitalization(getAutocapitalization())
+
+                    if viewModel.showValidationErrors, let error = viewModel.validateAttackOrigin() {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+
+                    // Show suspicious URL field for web-based attacks
+                    if shouldShowSuspiciousUrlField() {
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                            Text("URL Sospechosa (Opcional)")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(DesignSystem.Colors.textPrimary)
+
+                            TextField("https://ejemplo-sospechoso.com", text: $viewModel.suspiciousUrl)
+                                .bmadInputField()
+                                .keyboardType(.URL)
+                                .textInputAutocapitalization(.never)
+
+                            if viewModel.showValidationErrors, let error = viewModel.validateSuspiciousUrl() {
+                                Text(error)
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                            }
+                        }
+                    }
+                }
+                .bmadCard()
+            }
+        }
+    }
+
+    // MARK: - Incident Details Section (date/time in same row)
+
+    private var incidentDetailsSection: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
+            Text("Detalles del Incidente")
+                .font(.headline)
+                .foregroundColor(DesignSystem.Colors.textPrimary)
+
+            // Date and Time in same row
+            HStack(spacing: DesignSystem.Spacing.lg) {
+                // Date Picker
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                    Text("Fecha del Incidente")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(DesignSystem.Colors.textPrimary)
+
+                    DatePicker("", selection: $viewModel.incidentDate, displayedComponents: .date)
+                        .datePickerStyle(CompactDatePickerStyle())
+                        .padding(DesignSystem.Spacing.md)
+                        .background(Color.white)
+                        .cornerRadius(8)
+                }
+                .frame(maxWidth: .infinity)
+
+                // Time Input (Optional)
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                    Text("Hora (Opcional)")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(DesignSystem.Colors.textPrimary)
+
+                    TextField("HH:MM", text: $viewModel.incidentTime)
+                        .bmadInputField()
+                        .keyboardType(.numbersAndPunctuation)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .bmadCard()
+    }
+
+    // MARK: - Impact Section (like /inpo "¿han habido daños?")
+
+    private var impactSection: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+            VStack(spacing: DesignSystem.Spacing.md) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("¿Han habido daños?")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(DesignSystem.Colors.textPrimary)
+                        Text("Físicos, económicos o de otro tipo")
+                            .font(.caption)
+                            .foregroundColor(DesignSystem.Colors.textSecondary)
+                    }
+
+                    Spacer()
+
+                    Toggle("", isOn: .init(
+                        get: { hasImpactDamage() },
+                        set: { hasDamages in
+                            if hasDamages {
+                                // Set to first non-"ninguno" impact if available
+                                viewModel.selectedImpactId = getFirstDamageImpactId()
+                            } else {
+                                // Set to "ninguno" (no impact)
+                                viewModel.selectedImpactId = getNoImpactId()
+                            }
+                        }
+                    ))
+                }
+            }
+            .bmadToggleBackground()
+
+            // Show detailed impact selection if damages exist
+            if hasImpactDamage() {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                    Text("Tipo de daño")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(DesignSystem.Colors.textPrimary)
+
+                    VStack(spacing: DesignSystem.Spacing.sm) {
+                        ForEach(getDamageImpactOptions(), id: \.id) { impact in
+                            Button(action: {
+                                viewModel.selectedImpactId = impact.id
+                            }) {
+                                HStack {
+                                    Image(systemName: viewModel.selectedImpactId == impact.id ? "checkmark.circle.fill" : "circle")
+                                        .foregroundColor(viewModel.selectedImpactId == impact.id ? DesignSystem.Colors.safetradeOrange : .gray)
+
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(impact.displayName)
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(viewModel.selectedImpactId == impact.id ? DesignSystem.Colors.safetradeOrange : DesignSystem.Colors.textPrimary)
+
+                                        Text(CatalogHelpers.getImpactDescription(impact.name))
+                                            .font(.caption)
+                                            .foregroundColor(DesignSystem.Colors.textSecondary)
+                                    }
+
+                                    Spacer()
+                                }
+                                .padding(DesignSystem.Spacing.md)
+                                .background(viewModel.selectedImpactId == impact.id ? DesignSystem.Colors.safetradeOrange.opacity(0.1) : Color(.systemGray6))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .bmadCard()
+    }
+
+    // MARK: - Additional Information Section (only show when has content)
+
+    private var additionalInfoSection: some View {
+        Group {
+            // Only show this section if there's content to display
+            if shouldShowMessageContent() {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+                    Text("Información Adicional")
+                        .font(.headline)
+                        .foregroundColor(DesignSystem.Colors.textPrimary)
+
+                    // Message Content
+                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                        HStack {
+                            Text("Contenido del Mensaje (Opcional)")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(DesignSystem.Colors.textPrimary)
+
+                            Spacer()
+
+                            Text("\(viewModel.messageContent.count)/5000")
+                                .font(.caption)
+                                .foregroundColor(viewModel.messageContent.count > 5000 ? .red : DesignSystem.Colors.textSecondary)
+                        }
+
+                        TextField("Describe el mensaje o comunicación recibida...", text: $viewModel.messageContent, axis: .vertical)
+                            .lineLimit(3...6)
+                            .bmadInputField()
+                            .onChange(of: viewModel.messageContent) { _, newValue in
+                                if newValue.count > 5000 {
+                                    viewModel.messageContent = String(newValue.prefix(5000))
+                                }
+                            }
+
+                        if viewModel.showValidationErrors, let error = viewModel.validateMessageContent() {
+                            Text(error)
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        }
+                    }
+                }
+                .bmadCard()
             }
         }
     }
@@ -286,6 +442,9 @@ struct ReportSubmissionView: View {
             viewModel.submitReport()
         }) {
             HStack {
+                Image(systemName: "paperplane.fill")
+                    .font(.system(size: 16, weight: .medium))
+
                 if viewModel.isSubmitting {
                     ProgressView()
                         .scaleEffect(0.8)
@@ -296,14 +455,96 @@ struct ReportSubmissionView: View {
                     .font(.headline)
                     .fontWeight(.semibold)
             }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(viewModel.isFormValid && !viewModel.isSubmitting ? Color.blue : Color.gray)
-            .foregroundColor(.white)
-            .cornerRadius(12)
+            .bmadPrimaryButton(isDisabled: !viewModel.isFormValid || viewModel.isSubmitting)
         }
         .disabled(!viewModel.isFormValid || viewModel.isSubmitting)
     }
+
+    // MARK: - Helper Methods
+
+    private func getSelectedAttackTypeName() -> String {
+        guard let id = viewModel.selectedAttackTypeId,
+              let catalogData = viewModel.catalogData,
+              let attackType = catalogData.attackTypes.first(where: { $0.id == id }) else {
+            return ""
+        }
+        return attackType.name
+    }
+
+    private func getContactFieldLabel() -> String {
+        let attackTypeName = getSelectedAttackTypeName()
+        switch attackTypeName {
+        case "email": return "Detalles del correo"
+        case "SMS": return "Número de teléfono"
+        case "whatsapp": return "Número de WhatsApp"
+        case "llamada": return "Número de teléfono"
+        case "redes_sociales": return "Usuario o perfil"
+        default: return "Origen del ataque"
+        }
+    }
+
+    private func getContactFieldPlaceholder() -> String {
+        let attackTypeName = getSelectedAttackTypeName()
+        switch attackTypeName {
+        case "email": return "ejemplo@correo.com"
+        case "SMS", "whatsapp", "llamada": return "+52 55 1234 5678"
+        case "redes_sociales": return "usuario@redessociales"
+        default: return "origen desconocido"
+        }
+    }
+
+    private func getKeyboardType() -> UIKeyboardType {
+        let attackTypeName = getSelectedAttackTypeName()
+        switch attackTypeName {
+        case "email": return .emailAddress
+        case "SMS", "whatsapp", "llamada": return .phonePad
+        default: return .default
+        }
+    }
+
+    private func getAutocapitalization() -> TextInputAutocapitalization {
+        let attackTypeName = getSelectedAttackTypeName()
+        switch attackTypeName {
+        case "email", "SMS", "whatsapp", "llamada", "redes_sociales": return .never
+        default: return .sentences
+        }
+    }
+
+    private func shouldShowMessageContent() -> Bool {
+        let attackTypeName = getSelectedAttackTypeName()
+        return ["email", "SMS", "whatsapp", "redes_sociales"].contains(attackTypeName)
+    }
+
+    private func shouldShowSuspiciousUrlField() -> Bool {
+        let attackTypeName = getSelectedAttackTypeName()
+        return ["email", "redes_sociales"].contains(attackTypeName)
+    }
+
+    // MARK: - Impact Helper Methods
+
+    private func hasImpactDamage() -> Bool {
+        guard let impactId = viewModel.selectedImpactId,
+              let catalogData = viewModel.catalogData,
+              let impact = catalogData.impacts.first(where: { $0.id == impactId }) else {
+            return false
+        }
+        return impact.name != "ninguno"
+    }
+
+    private func getNoImpactId() -> Int? {
+        guard let catalogData = viewModel.catalogData else { return nil }
+        return catalogData.impacts.first(where: { $0.name == "ninguno" })?.id
+    }
+
+    private func getFirstDamageImpactId() -> Int? {
+        guard let catalogData = viewModel.catalogData else { return nil }
+        return catalogData.impacts.first(where: { $0.name != "ninguno" })?.id
+    }
+
+    private func getDamageImpactOptions() -> [(id: Int, name: String, displayName: String)] {
+        return viewModel.impactOptions.filter { $0.name != "ninguno" }
+    }
+
 }
 
 struct ReportSubmissionView_Previews: PreviewProvider {

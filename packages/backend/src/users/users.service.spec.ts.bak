@@ -15,9 +15,8 @@ describe('UsersService', () => {
         id: 1,
         email: 'test@example.com',
         name: 'Test User',
-        password_hash: 'hashed_password',
+        pass_hash: 'hashed_password',
         salt: 'unique_salt',
-        last_login: null,
         created_at: new Date(),
         updated_at: new Date()
     };
@@ -35,7 +34,6 @@ describe('UsersService', () => {
                         findAll: jest.fn(),
                         updateUser: jest.fn(),
                         deleteUser: jest.fn(),
-                        updateLastLogin: jest.fn(),
                     },
                 },
             ],
@@ -99,7 +97,7 @@ describe('UsersService', () => {
             const result = await service.validateUser(email, password);
 
             expect(repository.findByEmail).toHaveBeenCalledWith(email);
-            expect(hashUtil.verifyPassword).toHaveBeenCalledWith(password, mockUser.salt, mockUser.password_hash);
+            expect(hashUtil.verifyPassword).toHaveBeenCalledWith(password, mockUser.salt, mockUser.pass_hash);
             expect(result).toEqual(mockUser);
         });
 
@@ -126,7 +124,7 @@ describe('UsersService', () => {
             const result = await service.validateUser(email, password);
 
             expect(repository.findByEmail).toHaveBeenCalledWith(email);
-            expect(hashUtil.verifyPassword).toHaveBeenCalledWith(password, mockUser.salt, mockUser.password_hash);
+            expect(hashUtil.verifyPassword).toHaveBeenCalledWith(password, mockUser.salt, mockUser.pass_hash);
             expect(result).toBeNull();
         });
     });
@@ -165,16 +163,6 @@ describe('UsersService', () => {
         });
     });
 
-    describe('updateLastLogin', () => {
-        it('should update user last login timestamp', async () => {
-            const userId = 1;
-            jest.spyOn(repository, 'updateLastLogin').mockResolvedValue(undefined);
-
-            await service.updateLastLogin(userId);
-
-            expect(repository.updateLastLogin).toHaveBeenCalledWith(userId);
-        });
-    });
 
     describe('updateUser', () => {
         it('should update user information', async () => {

@@ -8,13 +8,13 @@ class ReportingViewModel: ObservableObject {
     // MARK: - Published Properties
 
     @Published var isAnonymous: Bool = true
-    @Published var selectedAttackType: AttackType = .email
+    @Published var selectedAttackTypeId: Int?
+    @Published var selectedImpactId: Int?
     @Published var incidentDate = Date()
     @Published var incidentTime: String = ""
     @Published var attackOrigin: String = ""
     @Published var suspiciousUrl: String = ""
     @Published var messageContent: String = ""
-    @Published var selectedImpactLevel: ImpactLevel = .ninguno
     @Published var description: String = ""
 
     // UI State
@@ -22,19 +22,45 @@ class ReportingViewModel: ObservableObject {
     @Published var showingSuccessAlert: Bool = false
     @Published var showingErrorAlert: Bool = false
     @Published var alertMessage: String = ""
-    @Published var lastSubmittedReport: ReportSummary?
+    @Published var lastSubmittedReport: NormalizedReport?
+    @Published var lastSubmittedAttackType: String?
     @Published var recommendations: [String] = []
     @Published var victimSupport: VictimSupport?
-    @Published var submittedAttackType: String?
 
     // Form validation
     @Published var showValidationErrors: Bool = false
+
+    // Catalog state
+    @Published var catalogData: CatalogData?
+    @Published var catalogError: String?
+    @Published var catalogLoading: Bool = false
+
+    // MARK: - Computed Properties for DraftManager Compatibility
+
+    var selectedAttackType: LegacyAttackType? {
+        guard let attackTypeId = selectedAttackTypeId,
+              let catalogData = catalogData,
+              let attackTypeName = catalogData.attackTypes.first(where: { $0.id == attackTypeId })?.name else {
+            return nil
+        }
+        return LegacyAttackType(rawValue: attackTypeName)
+    }
+
+    var selectedImpactLevel: LegacyImpactLevel? {
+        guard let impactId = selectedImpactId,
+              let catalogData = catalogData,
+              let impactName = catalogData.impacts.first(where: { $0.id == impactId })?.name else {
+            return nil
+        }
+        return LegacyImpactLevel(rawValue: impactName)
+    }
 
 
     // MARK: - Private Properties
 
     private let reportingService: ReportingService
     private let authService: AuthenticationService
+    private let catalogService: CatalogService
     private let userPreferencesService = UserPreferencesService.shared
     private let draftManager = DraftManager.shared
     private var cancellables = Set<AnyCancellable>()
@@ -43,9 +69,11 @@ class ReportingViewModel: ObservableObject {
 
     init(isAnonymous: Bool? = nil,
          reportingService: ReportingService = ReportingService(),
-         authService: AuthenticationService? = nil) {
+         authService: AuthenticationService? = nil,
+         catalogService: CatalogService = CatalogService.shared) {
         self.reportingService = reportingService
         self.authService = authService ?? AuthenticationService.shared
+        self.catalogService = catalogService
 
         // Set anonymous state based on parameter or authentication status
         if let isAnonymous = isAnonymous {
@@ -56,14 +84,28 @@ class ReportingViewModel: ObservableObject {
             self.isAnonymous = !repository.hasValidToken()
         }
 
-        // Apply smart defaults on initialization
-        applySmartDefaults()
+        // Subscribe to catalog updates
+        catalogService.$catalogData
+            .sink { [weak self] newCatalogData in
+                self?.catalogData = newCatalogData
+                if newCatalogData != nil {
+                    self?.applySmartDefaults()
+                }
+            }
+            .store(in: &cancellables)
+
+        // Load catalogs and apply defaults
+        Task {
+            await loadCatalogsAndDefaults()
+        }
     }
 
     // MARK: - Computed Properties
 
     var isFormValid: Bool {
-        return !attackOrigin.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return selectedAttackTypeId != nil &&
+               selectedImpactId != nil &&
+               !attackOrigin.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     var canSubmitIdentified: Bool {
@@ -76,22 +118,65 @@ class ReportingViewModel: ObservableObject {
         return formatter.string(from: incidentDate)
     }
 
+    // MARK: - Catalog Computed Properties
+
+    var attackTypeOptions: [(id: Int, name: String, displayName: String)] {
+        guard let catalogData = catalogData else { return [] }
+
+        let options = catalogData.attackTypes.map {
+            (id: $0.id, name: $0.name, displayName: CatalogHelpers.getLocalizedName(for: $0.name))
+        }
+
+        // Sort with email first, then others alphabetically, and "otro" last
+        return CatalogHelpers.sortedAttackTypes(catalogData.attackTypes).map {
+            (id: $0.id, name: $0.name, displayName: CatalogHelpers.getLocalizedName(for: $0.name))
+        }
+    }
+
+    var impactOptions: [(id: Int, name: String, displayName: String)] {
+        return catalogData?.impacts.map {
+            (id: $0.id, name: $0.name, displayName: CatalogHelpers.getLocalizedName(for: $0.name))
+        } ?? []
+    }
+
+    var selectedAttackTypeName: String {
+        guard let id = selectedAttackTypeId,
+              let catalogData = catalogData else { return "Selecciona tipo" }
+        return catalogData.attackTypes.first { $0.id == id }?.name ?? "Desconocido"
+    }
+
+    var selectedImpactName: String {
+        guard let id = selectedImpactId,
+              let catalogData = catalogData else { return "Selecciona impacto" }
+        return catalogData.impacts.first { $0.id == id }?.name ?? "Desconocido"
+    }
+
+    var isCatalogReady: Bool {
+        return catalogData != nil
+    }
+
     // MARK: - Form Actions
 
     func resetForm() {
         // Note: isAnonymous is not reset as it's set during initialization
-        selectedAttackType = .email
+        selectedAttackTypeId = nil
+        selectedImpactId = nil
         incidentDate = Date()
         incidentTime = ""
         attackOrigin = ""
         suspiciousUrl = ""
         messageContent = ""
-        selectedImpactLevel = .ninguno
         description = ""
         showValidationErrors = false
         recommendations = []
         victimSupport = nil
         lastSubmittedReport = nil
+        lastSubmittedAttackType = nil
+
+        // Apply smart defaults if catalog is available
+        if catalogData != nil {
+            applySmartDefaults()
+        }
     }
 
     // MARK: - Report Submission
@@ -105,57 +190,70 @@ class ReportingViewModel: ObservableObject {
             return
         }
 
+        guard let attackTypeId = selectedAttackTypeId,
+              let impactId = selectedImpactId,
+              let catalogData = catalogData else {
+            alertMessage = "Error: tipo de ataque, impacto no seleccionado o catálogos no cargados"
+            showingErrorAlert = true
+            return
+        }
+
+        // Convert IDs to string values
+        guard let attackTypeString = catalogData.attackTypes.first(where: { $0.id == attackTypeId })?.name,
+              let impactString = catalogData.impacts.first(where: { $0.id == impactId })?.name else {
+            alertMessage = "Error: valores de catálogo inválidos"
+            showingErrorAlert = true
+            return
+        }
+
         isSubmitting = true
         showValidationErrors = false
 
-        let request = CreateReportRequest(
-            isAnonymous: isAnonymous,
-            attackType: selectedAttackType.rawValue,
-            incidentDate: formattedIncidentDate,
-            incidentTime: incidentTime.isEmpty ? nil : incidentTime,
-            attackOrigin: attackOrigin.trimmingCharacters(in: .whitespacesAndNewlines),
-            suspiciousUrl: suspiciousUrl.isEmpty ? nil : suspiciousUrl,
-            messageContent: messageContent.isEmpty ? nil : messageContent,
-            impactLevel: selectedImpactLevel.rawValue,
-            description: description.isEmpty ? nil : description
-        )
+        Task {
+            do {
+                let userId = isAnonymous ? nil : authService.currentUser?.id
 
-        // Note: File attachments are currently disabled
-        // Always use the standard JSON-only submission
-        let publisher = reportingService.submitReport(request)
+                // Format date as string
+                let dateFormatter = DateFormatter()
+                dateFormatter.dateFormat = "yyyy-MM-dd"
+                let dateString = dateFormatter.string(from: incidentDate)
 
-        publisher
-            .receive(on: DispatchQueue.main)
-            .sink(
-                receiveCompletion: { [weak self] (completion: Subscribers.Completion<Error>) in
-                    self?.isSubmitting = false
+                let report = try await reportingService.submitReportWithStringValues(
+                    attackType: attackTypeString,
+                    impactLevel: impactString,
+                    incidentDate: dateString,
+                    incidentTime: incidentTime.isEmpty ? nil : incidentTime,
+                    description: description.isEmpty ? nil : description,
+                    evidenceUrl: suspiciousUrl.isEmpty ? nil : suspiciousUrl,
+                    attackOrigin: attackOrigin.trimmingCharacters(in: .whitespacesAndNewlines),
+                    suspiciousUrl: suspiciousUrl.isEmpty ? nil : suspiciousUrl,
+                    messageContent: messageContent.isEmpty ? nil : messageContent,
+                    isAnonymous: isAnonymous,
+                    userId: userId
+                )
 
-                    if case .failure(let error) = completion {
-                        self?.alertMessage = "Error al enviar el reporte: \(error.localizedDescription)"
-                        self?.showingErrorAlert = true
-                        HapticFeedback.shared.reportSubmissionError()
-                    }
-                },
-                receiveValue: { [weak self] (response: CreateReportResponse) in
-                    if response.success {
-                        self?.handleSuccessfulSubmission(response)
-                    } else {
-                        self?.alertMessage = response.message
-                        self?.showingErrorAlert = true
-                        HapticFeedback.shared.reportSubmissionError()
-                    }
+                await MainActor.run {
+                    self.handleSuccessfulSubmission(report)
                 }
-            )
-            .store(in: &cancellables)
+
+            } catch {
+                await MainActor.run {
+                    self.isSubmitting = false
+                    self.alertMessage = "Error al enviar el reporte: \(error.localizedDescription)"
+                    self.showingErrorAlert = true
+                    HapticFeedback.shared.reportSubmissionError()
+                }
+            }
+        }
     }
 
-    private func handleSuccessfulSubmission(_ response: CreateReportResponse) {
-        lastSubmittedReport = response.reporte
-        recommendations = response.recommendations ?? []
-        victimSupport = response.victimSupport
-        submittedAttackType = selectedAttackType.rawValue
+    private func handleSuccessfulSubmission(_ report: NormalizedReport) {
+        isSubmitting = false
+        lastSubmittedReport = report
+        lastSubmittedAttackType = selectedAttackTypeName
 
-        alertMessage = response.message
+        // Create success message
+        alertMessage = "Reporte enviado exitosamente"
 
         // Record user preferences for future suggestions
         recordUserPreferences()
@@ -163,30 +261,51 @@ class ReportingViewModel: ObservableObject {
         // Provide success haptic feedback
         HapticFeedback.shared.reportSubmissionSuccess()
 
-        // Immediately show recommendations instead of success alert
+        // Show success alert
         showingSuccessAlert = true
 
-        // Reset form for next report
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            self.resetForm()
-        }
+        // Note: resetForm() will be called when recommendations view is dismissed
     }
 
     private func recordUserPreferences() {
-        // Record attack type usage
-        userPreferencesService.recordAttackTypeUsage(selectedAttackType)
-
         // Record attack origin if not empty
         let cleanOrigin = attackOrigin.trimmingCharacters(in: .whitespacesAndNewlines)
         if !cleanOrigin.isEmpty {
             userPreferencesService.recordAttackOriginUsage(cleanOrigin)
         }
 
-        // Record impact level usage
-        userPreferencesService.recordImpactLevelUsage(selectedImpactLevel)
-
         // Clear draft after successful submission
         draftManager.clearDraft()
+    }
+
+    // MARK: - Catalog Loading
+
+    private func loadCatalogsAndDefaults() async {
+        catalogLoading = true
+        catalogError = nil
+
+        do {
+            await catalogService.loadCatalogs()
+            await MainActor.run {
+                self.catalogLoading = false
+
+                // Check if catalog data is available
+                if let catalogData = self.catalogData {
+                    self.applySmartDefaults()
+                } else {
+                    self.catalogError = "Datos de catálogo no disponibles"
+                }
+            }
+        } catch {
+            await MainActor.run {
+                self.catalogLoading = false
+                self.catalogError = "Error cargando opciones: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    func refreshCatalogs() async {
+        await catalogService.loadCatalogs(forceRefresh: true)
     }
 
     // MARK: - Draft Management
@@ -253,33 +372,51 @@ class ReportingViewModel: ObservableObject {
     // MARK: - Smart Defaults
 
     func applySmartDefaults() {
+        guard let catalogData = catalogData else { return }
+
         // Auto-populate current date and time
         incidentDate = Date()
         incidentTime = getCurrentTimeString()
 
         // Set most common attack type as default (email is most common)
-        selectedAttackType = getMostCommonAttackType()
+        selectedAttackTypeId = getMostCommonAttackTypeId()
 
-        // Set reasonable default for impact level
-        selectedImpactLevel = .ninguno
+        // Set reasonable default for impact level (ninguno/sin impacto)
+        selectedImpactId = getDefaultImpactId()
     }
 
-    func getMostCommonAttackType() -> AttackType {
-        // Return most used attack type based on user history, fallback to email
-        return userPreferencesService.getMostUsedAttackType() ?? .email
+    func getMostCommonAttackTypeId() -> Int? {
+        guard let catalogData = catalogData else { return nil }
+
+        // Look for email first as it's most common
+        if let emailType = catalogData.attackTypes.first(where: { $0.name == "email" }) {
+            return emailType.id
+        }
+
+        // Fallback to first available attack type
+        return catalogData.attackTypes.first?.id
     }
 
-    func getAttackTypeSuggestions() -> [AttackType] {
-        // Get suggestions based on user history
-        return userPreferencesService.getSuggestedAttackTypes()
+    func getDefaultImpactId() -> Int? {
+        guard let catalogData = catalogData else { return nil }
+
+        // Look for "ninguno" (no impact) first
+        if let noImpact = catalogData.impacts.first(where: { $0.name == "ninguno" }) {
+            return noImpact.id
+        }
+
+        // Fallback to first available impact
+        return catalogData.impacts.first?.id
     }
 
     func getAttackOriginSuggestions() -> [String] {
-        return userPreferencesService.getAttackOriginSuggestions(for: selectedAttackType)
-    }
+        guard let selectedId = selectedAttackTypeId,
+              let catalogData = catalogData,
+              let attackType = catalogData.attackTypes.first(where: { $0.id == selectedId }) else {
+            return []
+        }
 
-    func getPreferredImpactLevel() -> ImpactLevel {
-        return userPreferencesService.getPreferredImpactLevel() ?? .ninguno
+        return userPreferencesService.getAttackOriginSuggestions(for: LegacyAttackType(rawValue: attackType.name) ?? .email)
     }
 
     func setQuickDefaults() {
@@ -293,19 +430,25 @@ class ReportingViewModel: ObservableObject {
     }
 
     func getDefaultAttackOrigin() -> String {
-        // Provide a template/placeholder for user to modify
-        switch selectedAttackType {
-        case .email:
+        guard let selectedId = selectedAttackTypeId,
+              let catalogData = catalogData,
+              let attackType = catalogData.attackTypes.first(where: { $0.id == selectedId }) else {
+            return "origen desconocido"
+        }
+
+        // Provide a template/placeholder for user to modify based on attack type name
+        switch attackType.name {
+        case "email":
             return "correo@ejemplo.com"
-        case .sms:
+        case "SMS":
             return "+52 55 1234 5678"
-        case .whatsapp:
+        case "whatsapp":
             return "+52 55 1234 5678"
-        case .llamada:
+        case "llamada":
             return "+52 55 1234 5678"
-        case .redesSociales:
+        case "redes_sociales":
             return "usuario@redessociales"
-        case .otro:
+        default:
             return "origen desconocido"
         }
     }

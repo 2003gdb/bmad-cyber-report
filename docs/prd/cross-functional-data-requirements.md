@@ -40,7 +40,6 @@
 - email (Unique)
 - password_hash
 - created_at
-- last_login
 
 ## Data Storage Requirements
 - Encrypted storage for sensitive user data

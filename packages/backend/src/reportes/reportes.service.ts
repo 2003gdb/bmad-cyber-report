@@ -1,16 +1,15 @@
-
 import { Injectable } from "@nestjs/common";
-import { ReportesRepository, CreateReporteData, Reporte } from "./reportes.repository";
+import { ReportsRepository, LegacyReport, CreateLegacyReportData, ReportFilterDto } from "./reports.repository";
 import { AdjuntosRepository } from "./adjuntos.repository";
 
 @Injectable()
 export class ReportesService {
     constructor(
-        private readonly reportesRepository: ReportesRepository,
+        private readonly reportsRepository: ReportsRepository,
         private readonly adjuntosRepository: AdjuntosRepository
     ) {}
 
-    async createReporte(reporteData: CreateReporteData): Promise<Reporte | null> {
+    async createReporte(reporteData: CreateLegacyReportData): Promise<LegacyReport | null> {
         // Validate required fields
         if (!reporteData.attack_type || !reporteData.incident_date || !reporteData.attack_origin || !reporteData.impact_level) {
             throw new Error('Campos requeridos: tipo de ataque, fecha del incidente, origen del ataque, nivel de impacto');
@@ -28,26 +27,49 @@ export class ReportesService {
             throw new Error('Nivel de impacto inválido');
         }
 
-        return this.reportesRepository.createReporte(reporteData);
+        return this.reportsRepository.createReport(reporteData);
     }
 
-    async getReporteById(id: number): Promise<Reporte | null> {
-        return this.reportesRepository.findById(id);
+    async getReporteById(id: number): Promise<LegacyReport | null> {
+        return this.reportsRepository.findById(id);
     }
 
-    async getUserReports(userId: number): Promise<Reporte[]> {
-        return this.reportesRepository.findUserReports(userId);
+    async getUserReports(userId: number): Promise<LegacyReport[]> {
+        return this.reportsRepository.findUserReports(userId);
     }
 
-    async getRecentReports(limit: number = 10): Promise<Reporte[]> {
-        return this.reportesRepository.findRecentReports(limit);
+    async getAllReports(filters?: ReportFilterDto): Promise<{ reports: LegacyReport[], total: number, page: number, limit: number, totalPages: number }> {
+        // Set default pagination values
+        const page = filters?.page ? parseInt(filters.page) : 1;
+        const limit = filters?.limit ? parseInt(filters.limit) : 10;
+
+        // Get paginated data from repository
+        const { reports, total } = await this.reportsRepository.findAllReports(filters);
+
+        const totalPages = Math.ceil(total / limit);
+
+        return {
+            reports,
+            total,
+            page,
+            limit,
+            totalPages
+        };
+    }
+
+    async getRecentReports(limit: number = 10): Promise<LegacyReport[]> {
+        return this.reportsRepository.findRecentReports(limit);
     }
 
     async getReportStats() {
-        return this.reportesRepository.getReportStats();
+        return this.reportsRepository.getReportStats();
     }
 
-    async generateRecommendations(reporte: Reporte): Promise<string[]> {
+    async getCatalogData() {
+        return this.reportsRepository.getAllCatalogData();
+    }
+
+    async generateRecommendations(reporte: LegacyReport): Promise<string[]> {
         const recommendations: string[] = [];
 
         // Based on attack type
@@ -120,7 +142,7 @@ export class ReportesService {
         return recommendations;
     }
 
-    async getVictimSupport(reporte: Reporte): Promise<{
+    async getVictimSupport(reporte: LegacyReport): Promise<{
         title: string;
         steps: string[];
         resources: string[];
@@ -177,5 +199,4 @@ export class ReportesService {
 
         return support;
     }
-
 }

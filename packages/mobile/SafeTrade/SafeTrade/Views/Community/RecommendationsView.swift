@@ -24,7 +24,7 @@ struct RecommendationsView: View {
                     }
                 }
                 .font(.headline)
-                .foregroundColor(.blue)
+                .foregroundColor(DesignSystem.Colors.safetradeOrange)
             }
             .padding()
 
@@ -32,16 +32,22 @@ struct RecommendationsView: View {
 
             // Main content with quote
             VStack(spacing: 32) {
-                // Security icon
-                Image(systemName: "shield.checkered")
-                    .font(.system(size: 60))
-                    .foregroundColor(.blue)
+                // Shield icon with circle background
+                ZStack {
+                    Circle()
+                        .fill(DesignSystem.Colors.safetradeBlue)
+                        .frame(width: 100, height: 100)
+
+                    Image(systemName: "shield.fill")
+                        .font(.system(size: 40, weight: .medium))
+                        .foregroundColor(DesignSystem.Colors.safetradeDark)
+                }
 
                 // Security quote
                 Text(viewModel.securityQuote)
                     .font(.title2)
                     .multilineTextAlignment(.center)
-                    .foregroundColor(.primary)
+                    .foregroundColor(DesignSystem.Colors.textPrimary)
                     .padding(.horizontal, 24)
 
                 // Recommendation tip for this attack type
@@ -50,17 +56,16 @@ struct RecommendationsView: View {
                         Text(recommendation.titulo)
                             .font(.headline)
                             .multilineTextAlignment(.center)
-                            .foregroundColor(.blue)
+                            .foregroundColor(DesignSystem.Colors.safetradeOrange)
 
                         Text(recommendation.contenido)
                             .font(.body)
                             .multilineTextAlignment(.center)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(DesignSystem.Colors.textSecondary)
                             .padding(.horizontal, 16)
                     }
                     .padding()
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(12)
+                    .background(DesignSystem.Colors.cardBackgroundSecondary)
                     .padding(.horizontal, 24)
                 }
             }
@@ -76,17 +81,13 @@ struct RecommendationsView: View {
                 }
             }) {
                 Text("Regresar al Inicio")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .cornerRadius(12)
+                    .font(DesignSystem.Typography.buttonFont)
+                    .bmadPrimaryButton()
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 32)
         }
-        .background(Color(.systemGroupedBackground))
+        .bmadBackgroundGradient()
         .onAppear {
             viewModel.loadRecommendation(for: attackType)
         }

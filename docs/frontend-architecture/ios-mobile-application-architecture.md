@@ -232,82 +232,170 @@ struct User: Codable, Identifiable {
     }
 }
 
-// Report Model
+// Updated Report Model with normalized structure
 struct Report: Codable, Identifiable {
-    let id: UUID
-    let userId: UUID?
+    let id: Int
+    let userId: Int?
     let isAnonymous: Bool
-    let attackType: AttackType
-    let incidentDate: Date
-    let incidentTime: Time?
-    let attackOrigin: String
+    let attackType: Int // Foreign key to AttackType.id
+    let incidentDate: Date // Combined date and time
+    let attackOrigin: String?
+    let evidenceUrl: String? // URL to evidence files
     let suspiciousUrl: String?
     let messageContent: String?
-    let impactLevel: ImpactLevel
-    let description: String
-    let status: ReportStatus
+    let description: String?
+    let impact: Int // Foreign key to Impact.id
+    let status: Int // Foreign key to ReportStatus.id
+    let adminNotes: String?
     let createdAt: Date
-    
+    let updatedAt: Date
+
     enum CodingKeys: String, CodingKey {
         case id = "report_id"
         case userId = "user_id"
         case isAnonymous = "is_anonymous"
         case attackType = "attack_type"
         case incidentDate = "incident_date"
-        case incidentTime = "incident_time"
         case attackOrigin = "attack_origin"
+        case evidenceUrl = "evidence_url"
         case suspiciousUrl = "suspicious_url"
         case messageContent = "message_content"
-        case impactLevel = "impact_level"
         case description
+        case impact
         case status
+        case adminNotes = "admin_notes"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+// Extended Report with display names
+struct ReportWithDetails: Codable, Identifiable {
+    let id: Int
+    let userId: Int?
+    let isAnonymous: Bool
+    let attackType: Int
+    let attackTypeName: String
+    let incidentDate: Date
+    let attackOrigin: String?
+    let evidenceUrl: String?
+    let suspiciousUrl: String?
+    let messageContent: String?
+    let description: String?
+    let impact: Int
+    let impactName: String
+    let status: Int
+    let statusName: String
+    let adminNotes: String?
+    let createdAt: Date
+    let updatedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id = "report_id"
+        case userId = "user_id"
+        case isAnonymous = "is_anonymous"
+        case attackType = "attack_type"
+        case attackTypeName = "attack_type_name"
+        case incidentDate = "incident_date"
+        case attackOrigin = "attack_origin"
+        case evidenceUrl = "evidence_url"
+        case suspiciousUrl = "suspicious_url"
+        case messageContent = "message_content"
+        case description
+        case impact
+        case impactName = "impact_name"
+        case status
+        case statusName = "status_name"
+        case adminNotes = "admin_notes"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+// Catalog Models
+struct AttackType: Codable, Identifiable {
+    let id: Int
+    let name: String
+    let createdAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name
         case createdAt = "created_at"
     }
-}
 
-// Enums with Spanish Cases
-enum AttackType: String, Codable, CaseIterable {
-    case email = "email"
-    case sms = "SMS"
-    case whatsapp = "whatsapp"
-    case llamada = "llamada"
-    case redesSociales = "redes_sociales"
-    case otro = "otro"
-    
     var displayName: String {
-        switch self {
-        case .email: return "Correo Electrónico"
-        case .sms: return "SMS"
-        case .whatsapp: return "WhatsApp"
-        case .llamada: return "Llamada Telefónica"
-        case .redesSociales: return "Redes Sociales"
-        case .otro: return "Otro"
+        switch name {
+        case "email": return "Correo Electrónico"
+        case "SMS": return "SMS"
+        case "whatsapp": return "WhatsApp"
+        case "llamada": return "Llamada Telefónica"
+        case "redes_sociales": return "Redes Sociales"
+        case "otro": return "Otro"
+        default: return name.capitalized
         }
     }
 }
 
-enum ImpactLevel: String, Codable, CaseIterable {
-    case ninguno = "ninguno"
-    case roboDatos = "robo_datos"
-    case roboDinero = "robo_dinero"
-    case cuentaComprometida = "cuenta_comprometida"
-    
+struct Impact: Codable, Identifiable {
+    let id: Int
+    let name: String
+    let createdAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name
+        case createdAt = "created_at"
+    }
+
     var displayName: String {
-        switch self {
-        case .ninguno: return "Sin Impacto"
-        case .roboDatos: return "Robo de Datos"
-        case .roboDinero: return "Robo de Dinero"
-        case .cuentaComprometida: return "Cuenta Comprometida"
+        switch name {
+        case "ninguno": return "Sin Impacto"
+        case "robo_datos": return "Robo de Datos"
+        case "robo_dinero": return "Robo de Dinero"
+        case "cuenta_comprometida": return "Cuenta Comprometida"
+        default: return name.capitalized
         }
     }
-    
+
     var severity: Int {
-        switch self {
-        case .ninguno: return 1
-        case .roboDatos: return 2
-        case .cuentaComprometida: return 3
-        case .roboDinero: return 4
+        switch name {
+        case "ninguno": return 1
+        case "robo_datos": return 2
+        case "cuenta_comprometida": return 3
+        case "robo_dinero": return 4
+        default: return 0
         }
+    }
+}
+
+struct ReportStatus: Codable, Identifiable {
+    let id: Int
+    let name: String
+    let createdAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name
+        case createdAt = "created_at"
+    }
+
+    var displayName: String {
+        switch name {
+        case "nuevo": return "Nuevo"
+        case "revisado": return "Revisado"
+        case "en_investigacion": return "En Investigación"
+        case "cerrado": return "Cerrado"
+        default: return name.capitalized
+        }
+    }
+}
+
+// Catalog Data Container
+struct CatalogData: Codable {
+    let attackTypes: [AttackType]
+    let impacts: [Impact]
+    let statuses: [ReportStatus]
+
+    enum CodingKeys: String, CodingKey {
+        case attackTypes, impacts, statuses
     }
 }
 ```

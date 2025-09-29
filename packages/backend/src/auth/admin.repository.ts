@@ -5,9 +5,8 @@ import { hashPassword, verifyPassword } from "src/util/hash/hash.util";
 export type AdminUser = {
     id: number;
     email: string;
-    password_hash: string;
+    pass_hash: string;
     salt: string;
-    last_login: Date;
     created_at: Date;
 };
 
@@ -35,18 +34,14 @@ export class AdminRepository {
             return null;
         }
 
-        const isValid = await verifyPassword(password, admin.salt, admin.password_hash);
+        const isValid = await verifyPassword(password, admin.salt, admin.pass_hash);
         return isValid ? admin : null;
     }
 
-    async updateLastLogin(id: number): Promise<void> {
-        const sql = `UPDATE admin_users SET last_login = CURRENT_TIMESTAMP WHERE id = ?`;
-        await this.db.getPool().query(sql, [id]);
-    }
 
     async createAdmin(email: string, password: string, salt: string): Promise<AdminUser | null> {
         const hashedPassword = await hashPassword(password, salt);
-        const sql = `INSERT INTO admin_users (email, password_hash, salt) VALUES (?, ?, ?)`;
+        const sql = `INSERT INTO admin_users (email, pass_hash, salt) VALUES (?, ?, ?)`;
 
         try {
             const [result] = await this.db.getPool().query(sql, [email, hashedPassword, salt]);

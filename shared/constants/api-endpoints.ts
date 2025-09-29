@@ -32,7 +32,7 @@ export const API_ENDPOINTS = {
     BASE: '/admin',
     LOGIN: '/admin/login',
     DASHBOARD: '/admin/dashboard',
-    REPORTS: '/admin/reportes',
+    REPORTS: '/reportes',
     USERS: '/admin/usuarios',
     ANALYTICS: '/admin/analitica'
   },

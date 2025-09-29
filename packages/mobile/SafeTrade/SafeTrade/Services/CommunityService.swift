@@ -88,7 +88,7 @@ class CommunityService: ObservableObject {
 
     private func mapError(_ error: Error) -> CommunityError {
         // Map APIService errors to CommunityError
-        return .networkError(error.localizedDescription)
+        return .networkError("Error de conexión")
     }
 }
 

@@ -90,4 +90,73 @@ struct AuthenticationModel {
 
         return true
     }
+
+    // MARK: - Profile Management
+
+    static func changePassword(currentPassword: String, newPassword: String) async throws -> UpdateProfileResponse {
+        let changePasswordRequest = ChangePasswordRequest(
+            currentPassword: currentPassword,
+            newPassword: newPassword
+        )
+        let jsonData = try JSONEncoder().encode(changePasswordRequest)
+
+        let response = try await APIService.shared.request(
+            endpoint: "/users/profile/password",
+            method: .PUT,
+            body: jsonData,
+            responseType: UpdateProfileResponse.self
+        )
+
+        return response
+    }
+
+    static func updateEmail(newEmail: String, password: String) async throws -> UpdateProfileResponse {
+        let updateEmailRequest = UpdateEmailRequest(
+            newEmail: newEmail,
+            password: password
+        )
+        let jsonData = try JSONEncoder().encode(updateEmailRequest)
+
+        let response = try await APIService.shared.request(
+            endpoint: "/users/profile/email",
+            method: .PUT,
+            body: jsonData,
+            responseType: UpdateProfileResponse.self
+        )
+
+        return response
+    }
+
+    static func updateName(newName: String, password: String) async throws -> UpdateProfileResponse {
+        let updateNameRequest = UpdateNameRequest(
+            newName: newName,
+            password: password
+        )
+        let jsonData = try JSONEncoder().encode(updateNameRequest)
+
+        let response = try await APIService.shared.request(
+            endpoint: "/users/profile/name",
+            method: .PUT,
+            body: jsonData,
+            responseType: UpdateProfileResponse.self
+        )
+
+        return response
+    }
+
+    // MARK: - Profile Validation
+
+    static func validateNewPassword(_ password: String) -> Bool {
+        // More strict validation for new passwords
+        let hasMinLength = password.count >= 8
+        let hasUppercase = password.range(of: "[A-Z]", options: .regularExpression) != nil
+        let hasLowercase = password.range(of: "[a-z]", options: .regularExpression) != nil
+        let hasNumbers = password.range(of: "[0-9]", options: .regularExpression) != nil
+
+        return hasMinLength && hasUppercase && hasLowercase && hasNumbers
+    }
+
+    static func validatePasswordConfirmation(_ password: String, confirmation: String) -> Bool {
+        return password == confirmation && !password.isEmpty
+    }
 }

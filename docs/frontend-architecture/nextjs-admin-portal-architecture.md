@@ -123,7 +123,7 @@ import { apiClient } from '@/lib/api'
 export function useReports(filters?: ReportFilters) {
   return useQuery({
     queryKey: ['reports', filters],
-    queryFn: () => apiClient.get('/reports', { params: filters }),
+    queryFn: () => apiClient.get('/reportes', { params: filters }),
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 10 * 60 * 1000, // 10 minutes
   })
@@ -131,9 +131,9 @@ export function useReports(filters?: ReportFilters) {
 
 export function useUpdateReportStatus() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
-    mutationFn: ({ reportId, status, notes }: UpdateStatusRequest) => 
+    mutationFn: ({ reportId, status, notes }: UpdateStatusRequest) =>
       apiClient.put(`/admin/reports/${reportId}/status`, { status, notes }),
     onSuccess: () => {
       // Invalidate and refetch reports
@@ -145,11 +145,21 @@ export function useUpdateReportStatus() {
   })
 }
 
-export function useReportDetails(reportId: string) {
+export function useReportDetails(reportId: number) {
   return useQuery({
     queryKey: ['report', reportId],
-    queryFn: () => apiClient.get(`/admin/reports/${reportId}`),
+    queryFn: () => apiClient.get(`/reportes/${reportId}`),
     enabled: !!reportId,
+  })
+}
+
+// New hook for catalog data
+export function useCatalogs() {
+  return useQuery({
+    queryKey: ['catalogs'],
+    queryFn: () => apiClient.get('/reportes/catalogs'),
+    staleTime: 30 * 60 * 1000, // 30 minutes - catalogs don't change often
+    cacheTime: 60 * 60 * 1000, // 1 hour
   })
 }
 ```
@@ -316,29 +326,63 @@ apiClient.interceptors.response.use(
 
 ### TypeScript Type Definitions
 ```typescript
+// types/Catalog.ts
+export interface AttackType {
+  id: number
+  name: string
+  created_at: string
+}
+
+export interface Impact {
+  id: number
+  name: string
+  created_at: string
+}
+
+export interface Status {
+  id: number
+  name: string
+  created_at: string
+}
+
+export interface CatalogData {
+  attackTypes: AttackType[]
+  impacts: Impact[]
+  statuses: Status[]
+}
+
 // types/Report.ts
 export interface Report {
-  report_id: string
-  user_id?: string
+  report_id: number
+  user_id?: number
   is_anonymous: boolean
-  attack_type: AttackType
-  incident_date: string
-  incident_time?: string
-  attack_origin: string
+  attack_type: number // Foreign key to AttackType.id
+  incident_date: string // ISO timestamp
+  attack_origin?: string
+  evidence_url?: string // URL to evidence files
   suspicious_url?: string
   message_content?: string
-  impact_level: ImpactLevel
-  description: string
-  status: ReportStatus
+  description?: string
+  impact: number // Foreign key to Impact.id
+  status: number // Foreign key to Status.id
+  admin_notes?: string
   created_at: string
   updated_at: string
-  attachments?: ReportAttachment[]
+}
+
+export interface ReportWithDetails extends Report {
+  attack_type_name: string
+  impact_name: string
+  status_name: string
+  user_name?: string
+  user_email?: string
 }
 
 export interface ReportFilters {
-  status?: ReportStatus
-  attack_type?: AttackType
-  impact_level?: ImpactLevel
+  status?: number // Filter by status ID
+  attack_type?: number // Filter by attack type ID
+  impact?: number // Filter by impact ID
+  is_anonymous?: boolean
   date_from?: string
   date_to?: string
   page?: number
@@ -346,14 +390,10 @@ export interface ReportFilters {
 }
 
 export interface UpdateStatusRequest {
-  reportId: string
-  status: ReportStatus
+  reportId: number
+  status: number // Status ID
   notes?: string
 }
-
-export type AttackType = 'email' | 'SMS' | 'whatsapp' | 'llamada' | 'redes_sociales' | 'otro'
-export type ImpactLevel = 'ninguno' | 'robo_datos' | 'robo_dinero' | 'cuenta_comprometida'
-export type ReportStatus = 'nuevo' | 'revisado' | 'en_investigacion' | 'cerrado'
 
 // types/Analytics.ts
 export interface DashboardMetrics {
@@ -364,7 +404,8 @@ export interface DashboardMetrics {
 }
 
 export interface TrendData {
-  attack_type: AttackType
+  attack_type_id: number
+  attack_type_name: string
   count: number
   percentage: number
   time_period: string

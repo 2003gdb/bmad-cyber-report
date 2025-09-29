@@ -27,64 +27,151 @@ components:
       type: object
       properties:
         user_id:
-          type: string
-          format: uuid
+          type: integer
         email:
           type: string
           format: email
+        name:
+          type: string
         created_at:
           type: string
           format: date-time
-      # Note: password_hash and salt fields are never exposed through API for security
-    
+      # Note: pass_hash and salt fields are never exposed through API for security
+
+    AttackType:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    Impact:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    Status:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    CatalogData:
+      type: object
+      properties:
+        attackTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttackType'
+        impacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Impact'
+        statuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Status'
+
     Report:
       type: object
       properties:
         report_id:
-          type: string
-          format: uuid
+          type: integer
         user_id:
-          type: string
-          format: uuid
+          type: integer
           nullable: true
         is_anonymous:
           type: boolean
         attack_type:
-          type: string
-          enum: [email, SMS, whatsapp, llamada, redes_sociales, otro]
+          type: integer
+          description: Foreign key to attack_types.id
         incident_date:
           type: string
-          format: date
-        incident_time:
-          type: string
-          format: time
+          format: date-time
+          description: Combined date and time of incident
         attack_origin:
           type: string
           description: Phone number or email of attacker
+          nullable: true
+        evidence_url:
+          type: string
+          format: uri
+          nullable: true
+          description: URL to evidence files/screenshots
         suspicious_url:
           type: string
           format: uri
           nullable: true
+          description: Malicious URL related to attack
         message_content:
           type: string
           nullable: true
-        impact_level:
-          type: string
-          enum: [ninguno, robo_datos, robo_dinero, cuenta_comprometida]
         description:
           type: string
+          nullable: true
+        impact:
+          type: integer
+          description: Foreign key to impacts.id
         status:
+          type: integer
+          description: Foreign key to status.id
+        admin_notes:
           type: string
-          enum: [nuevo, revisado, en_investigacion, cerrado]
+          nullable: true
         created_at:
           type: string
           format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ReportWithDetails:
+      allOf:
+        - $ref: '#/components/schemas/Report'
+        - type: object
+          properties:
+            attack_type_name:
+              type: string
+              description: Display name for attack type
+            impact_name:
+              type: string
+              description: Display name for impact level
+            status_name:
+              type: string
+              description: Display name for status
+            user_name:
+              type: string
+              nullable: true
+              description: User name (null for anonymous reports)
+            user_email:
+              type: string
+              nullable: true
+              description: User email (null for anonymous reports)
     
     TrendData:
       type: object
       properties:
-        attack_type:
+        attack_type_id:
+          type: integer
+          description: Foreign key to attack_types.id
+        attack_type_name:
           type: string
+          description: Display name for attack type
         count:
           type: integer
         percentage:
@@ -163,14 +250,27 @@ paths:
         '401':
           description: Invalid credentials
 
+  # Catalog Endpoints
+  /reportes/catalogs:
+    get:
+      tags: [Catalogs]
+      summary: Get all catalog data (attack types, impacts, statuses)
+      responses:
+        '200':
+          description: Catalog data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogData'
+
   # Incident Reporting Endpoints
-  /reports:
+  /reportes:
     post:
       tags: [Reporting]
       summary: Submit incident report (anonymous or identified)
       description: |
-        Accepts JSON-only format for text-based incident reporting.
-        File upload functionality has been removed to simplify the system.
+        Accepts JSON-only format for text-based incident reporting using normalized IDs.
+        Evidence is handled through URL field instead of file uploads.
       security:
         - BearerAuth: []
         - {} # Anonymous access allowed
@@ -180,32 +280,39 @@ paths:
           application/json:
             schema:
               type: object
-              required: [attack_type, incident_date, attack_origin, impact_level]
+              required: [attack_type, incident_date, impact]
               properties:
                 is_anonymous:
                   type: boolean
                   default: true
                 attack_type:
-                  type: string
-                  enum: [email, SMS, whatsapp, llamada, redes_sociales, otro]
+                  type: integer
+                  description: ID from attack_types catalog
                 incident_date:
                   type: string
-                  format: date
-                incident_time:
-                  type: string
-                  format: time
+                  format: date-time
+                  description: Combined date and time of incident
                 attack_origin:
                   type: string
+                  nullable: true
+                evidence_url:
+                  type: string
+                  format: uri
+                  nullable: true
+                  description: URL to evidence files/screenshots
                 suspicious_url:
                   type: string
                   format: uri
+                  nullable: true
                 message_content:
                   type: string
-                impact_level:
-                  type: string
-                  enum: [ninguno, robo_datos, robo_dinero, cuenta_comprometida]
+                  nullable: true
+                impact:
+                  type: integer
+                  description: ID from impacts catalog
                 description:
                   type: string
+                  nullable: true
       responses:
         '201':
           description: Report submitted successfully
@@ -215,7 +322,7 @@ paths:
                 type: object
                 properties:
                   report:
-                    $ref: '#/components/schemas/Report'
+                    $ref: '#/components/schemas/ReportWithDetails'
                   recommendations:
                     type: array
                     items:
@@ -224,7 +331,7 @@ paths:
                     type: object
                     nullable: true
         '400':
-          description: Invalid report data
+          description: Invalid report data or invalid catalog IDs
     
     get:
       tags: [Reporting]
@@ -235,16 +342,23 @@ paths:
         - name: status
           in: query
           schema:
-            type: string
-            enum: [nuevo, revisado, en_investigacion, cerrado]
+            type: integer
+            description: Filter by status ID
         - name: attack_type
           in: query
           schema:
-            type: string
-        - name: impact_level
+            type: integer
+            description: Filter by attack type ID
+        - name: impact
           in: query
           schema:
-            type: string
+            type: integer
+            description: Filter by impact ID
+        - name: is_anonymous
+          in: query
+          schema:
+            type: boolean
+            description: Filter by anonymous flag
         - name: date_from
           in: query
           schema:
@@ -276,7 +390,7 @@ paths:
                   reports:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Report'
+                      $ref: '#/components/schemas/ReportWithDetails'
                   pagination:
                     type: object
                     properties:
@@ -435,8 +549,8 @@ paths:
               required: [status]
               properties:
                 status:
-                  type: string
-                  enum: [nuevo, revisado, en_investigacion, cerrado]
+                  type: integer
+                  description: Status ID from status catalog
                 notes:
                   type: string
       responses:

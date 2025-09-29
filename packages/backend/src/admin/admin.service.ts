@@ -2,6 +2,7 @@
 import { Injectable } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import { AdminRepository } from './admin.repository';
+import { CatalogMappingService } from './catalog-mapping.service';
 
 export interface ReportFilters {
     status?: string;
@@ -26,6 +27,7 @@ export class AdminService {
     constructor(
         private readonly usersService: UsersService, // Reuse existing service
         private readonly adminRepository: AdminRepository,
+        private readonly catalogMappingService: CatalogMappingService,
     ) {}
 
     // User management methods (reusing UsersService)
@@ -33,7 +35,7 @@ export class AdminService {
         const users = await this.usersService.findAll();
         // Remove sensitive data before returning
         return users.map(user => {
-            const { password_hash: _password_hash, salt: _salt, ...safeUser } = user;
+            const { pass_hash: _pass_hash, salt: _salt, ...safeUser } = user;
             return safeUser;
         });
     }
@@ -41,7 +43,7 @@ export class AdminService {
     async getUserById(id: number) {
         const user = await this.usersService.findById(id);
         if (user) {
-            const { password_hash: _password_hash, salt: _salt, ...safeUser } = user;
+            const { pass_hash: _pass_hash, salt: _salt, ...safeUser } = user;
             return safeUser;
         }
         return null;
@@ -81,53 +83,18 @@ export class AdminService {
     async getFilteredReportsForAdmin(filters: ReportFilters) {
         const rawReports = await this.adminRepository.getFilteredReports(filters);
 
-        // Transform snake_case to camelCase for admin portal frontend
-        return (rawReports as any[]).map(row => ({
-            id: row.id,
-            userId: row.user_id,
-            isAnonymous: Boolean(row.is_anonymous),
-            attackType: row.attack_type,
-            incidentDate: row.incident_date,
-            incidentTime: row.incident_time,
-            attackOrigin: row.attack_origin,
-            suspiciousUrl: row.suspicious_url,
-            impactLevel: row.impact_level,
-            status: row.status,
-            description: row.description,
-            location: row.attack_origin || 'Ubicación no especificada',
-            createdAt: row.created_at,
-            updatedAt: row.updated_at,
-            userEmail: row.user_email,
-            userName: row.user_name
-        }));
+        // Transform using centralized catalog mapping service
+        return (rawReports as any[]).map(row =>
+            this.catalogMappingService.transformReportSummaryForAdmin(row)
+        );
     }
 
     async updateReportStatus(reportId: number, status: string, adminNotes?: string) {
         const rawReport = await this.adminRepository.updateReportStatus(reportId, status, adminNotes);
         if (!rawReport) return null;
 
-        // Transform for admin portal frontend (same transformation as getReportByIdForAdmin)
-        return {
-            id: rawReport.id,
-            userId: rawReport.user_id,
-            isAnonymous: Boolean(rawReport.is_anonymous),
-            attackType: rawReport.attack_type,
-            incidentDate: rawReport.incident_date,
-            incidentTime: rawReport.incident_time,
-            attackOrigin: rawReport.attack_origin,
-            suspiciousUrl: rawReport.suspicious_url,
-            impactLevel: rawReport.impact_level,
-            status: rawReport.status,
-            description: rawReport.description,
-            location: rawReport.attack_origin || 'Ubicación no especificada',
-            deviceInfo: rawReport.device_info,
-            adminNotes: rawReport.admin_notes,
-            evidenceUrls: rawReport.evidence_urls ? JSON.parse(rawReport.evidence_urls as string) : [],
-            createdAt: rawReport.created_at,
-            updatedAt: rawReport.updated_at,
-            userEmail: rawReport.user_email,
-            userName: rawReport.user_name
-        };
+        // Transform using centralized catalog mapping service
+        return this.catalogMappingService.transformReportForAdmin(rawReport);
     }
 
     // Advanced Search and Operations
@@ -215,28 +182,8 @@ export class AdminService {
         const rawReport = await this.adminRepository.getReportById(reportId);
         if (!rawReport) return null;
 
-        // Transform for admin portal frontend
-        return {
-            id: rawReport.id,
-            userId: rawReport.user_id,
-            isAnonymous: Boolean(rawReport.is_anonymous),
-            attackType: rawReport.attack_type,
-            incidentDate: rawReport.incident_date,
-            incidentTime: rawReport.incident_time,
-            attackOrigin: rawReport.attack_origin,
-            suspiciousUrl: rawReport.suspicious_url,
-            impactLevel: rawReport.impact_level,
-            status: rawReport.status,
-            description: rawReport.description,
-            location: rawReport.attack_origin || 'Ubicación no especificada',
-            deviceInfo: rawReport.device_info,
-            adminNotes: rawReport.admin_notes,
-            evidenceUrls: rawReport.evidence_urls ? JSON.parse(rawReport.evidence_urls as string) : [],
-            createdAt: rawReport.created_at,
-            updatedAt: rawReport.updated_at,
-            userEmail: rawReport.user_email,
-            userName: rawReport.user_name
-        };
+        // Transform using centralized catalog mapping service
+        return this.catalogMappingService.transformReportForAdmin(rawReport);
     }
 
 

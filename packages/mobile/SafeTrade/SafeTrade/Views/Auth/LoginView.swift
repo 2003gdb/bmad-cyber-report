@@ -12,91 +12,134 @@ struct LoginView: View {
 
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Header
-                    VStack(spacing: 16) {
-                        Image(systemName: "person.circle.fill")
-                            .font(.system(size: 80))
-                            .foregroundColor(.blue)
+            ZStack {
+                // Gradient background
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color(red: 161/255, green: 205/255, blue: 244/255).opacity(0.1),
+                        Color(UIColor.systemBackground)
+                    ]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
 
-                        Text("Iniciar Sesión")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
+                ScrollView {
+                    VStack(spacing: 32) {
+                        // Header with Shield Icon
+                        VStack(spacing: 16) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color(red: 161/255, green: 205/255, blue: 244/255))
+                                    .frame(width: 80, height: 80)
 
-                        Text("Accede a tu cuenta SafeTrade")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.top, 40)
+                                Image(systemName: "shield.fill")
+                                    .font(.system(size: 32, weight: .medium))
+                                    .foregroundColor(Color(red: 37/255, green: 40/255, blue: 61/255))
+                            }
 
-                    // Form Fields
-                    VStack(spacing: 16) {
-                        // Email Field
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Correo Electrónico")
-                                .font(.headline)
-                                .foregroundColor(.primary)
+                            Text("Reportes Ciudadanos")
+                                .font(.title)
+                                .fontWeight(.semibold)
+                                .foregroundColor(Color(red: 37/255, green: 40/255, blue: 61/255))
 
-                            TextField("tu@email.com", text: $email)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .keyboardType(.emailAddress)
-                                .autocapitalization(.none)
-                                .autocorrectionDisabled()
+                            Text("Inicia sesión para continuar")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
                         }
+                        .padding(.top, 40)
 
-                        // Password Field
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Contraseña")
-                                .font(.headline)
-                                .foregroundColor(.primary)
+                        // Glassmorphism Card
+                        VStack(spacing: 24) {
+                            VStack(spacing: 4) {
+                                Text("Iniciar Sesión")
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(Color(red: 37/255, green: 40/255, blue: 61/255))
+                            }
 
-                            SecureField("Contraseña", text: $password)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                            // Form Fields
+                            VStack(spacing: 16) {
+                                // Email Field
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Correo electrónico")
+                                        .font(.headline)
+                                        .foregroundColor(Color(red: 37/255, green: 40/255, blue: 61/255))
+
+                                    TextField("ejemplo@correo.com", text: $email)
+                                        .padding()
+                                        .background(Color.white)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(Color(red: 161/255, green: 205/255, blue: 244/255).opacity(0.3), lineWidth: 1)
+                                        )
+                                        .cornerRadius(12)
+                                        .keyboardType(.emailAddress)
+                                        .autocapitalization(.none)
+                                        .autocorrectionDisabled()
+                                }
+
+                                // Password Field
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Contraseña")
+                                        .font(.headline)
+                                        .foregroundColor(Color(red: 37/255, green: 40/255, blue: 61/255))
+
+                                    SecureField("••••••••", text: $password)
+                                        .padding()
+                                        .background(Color.white)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(Color(red: 161/255, green: 205/255, blue: 244/255).opacity(0.3), lineWidth: 1)
+                                        )
+                                        .cornerRadius(12)
+                                }
+                            }
                         }
-                    }
-                    .padding(.horizontal, 24)
+                        .padding(24)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.white.opacity(0.7))
+                                .background(.ultraThinMaterial)
+                        )
+                        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 4)
+                        .padding(.horizontal, 24)
 
-                    // Login Button
-                    Button(action: {
-                        Task {
-                            await loginUser()
-                        }
-                    }) {
-                        if isLoading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                        } else {
-                            HStack {
-                                Image(systemName: "arrow.right.circle.fill")
+                        // Login Button
+                        Button(action: {
+                            Task {
+                                await loginUser()
+                            }
+                        }) {
+                            if isLoading {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                            } else {
                                 Text("Iniciar Sesión")
                                     .fontWeight(.semibold)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding()
                         }
-                    }
-                    .background(isFormValid ? Color.blue : Color.gray)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-                    .disabled(!isFormValid || isLoading)
-                    .padding(.horizontal, 24)
+                        .background(
+                            isFormValid ?
+                            Color(red: 245/255, green: 133/255, blue: 63/255) :
+                            Color.gray
+                        )
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                        .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+                        .disabled(!isFormValid || isLoading)
+                        .padding(.horizontal, 24)
 
-                    Spacer()
-                }
-            }
-            .navigationTitle("Iniciar Sesión")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancelar") {
-                        presentationMode.wrappedValue.dismiss()
+                        Spacer()
                     }
-                    .foregroundColor(.blue)
                 }
             }
+            .navigationTitle("")
+            .navigationBarHidden(true)
         }
         .alert("Error de Autenticación", isPresented: $showingError) {
             Button("OK") { }
@@ -125,7 +168,7 @@ struct LoginView: View {
             _ = try await authService.login(email: email, password: password)
             // Success is handled by the onChange modifier
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = "Error de inicio de sesión"
             showingError = true
         }
 
