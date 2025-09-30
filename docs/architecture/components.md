@@ -14,46 +14,115 @@
 
 **Technology Stack:** NestJS Guards, JWT Strategy, Passport.js integration, bcrypt password hashing with individual salt generation
 
-## ReportingModule  
-**Responsibility:** Core incident reporting functionality supporting both anonymous and identified report submissions, file uploads, and report management
+## ReportingModule (Spanish: `reportes/`)
+**Responsibility:** Core incident reporting functionality supporting both anonymous and identified report submissions, photo uploads, victim support, and report management
 
 **Key Interfaces:**
-- POST `/reports` - Submit new incident report (anonymous or identified)
-- GET `/reports` - Retrieve reports (admin only, with filtering/pagination)
-- GET `/reports/:id` - Get specific report details
-- PUT `/reports/:id/status` - Update report status (admin only)
-- POST `/reports/:id/attachments` - Upload file attachments
+- POST `/reportes` - Submit new incident report (anonymous or identified using AnonymousAuthGuard)
+- POST `/reportes/upload-photo` - Upload evidence photo (JPEG, PNG, HEIC, HEIF)
+- GET `/reportes` - Retrieve all reports with pagination (admin only)
+- GET `/reportes/:id` - Get specific report details (privacy-filtered for regular users)
+- GET `/reportes/user/mis-reportes` - Get authenticated user's own reports
+- GET `/reportes/catalogs` - Get all catalog data (attack types, impacts, statuses)
 
-**Dependencies:** ReportService, FileUploadService, ValidationService, AuthModule
+**Dependencies:** ReportService, ReportsRepository, AdjuntosRepository, VictimSupportService, CatalogMappingService, AuthModule
 
-**Technology Stack:** Multer file upload, class-validator input validation, Sequelize ORM integration
+**Technology Stack:**
+- Multer file upload with disk storage (`/public/uploads/`)
+- class-validator input validation
+- Direct MySQL queries via mysql2/promise
+- AnonymousAuthGuard for dual-mode authentication
+- Victim support generation based on impact level
 
-## CommunityModule
-**Responsibility:** Community intelligence features including threat trends analysis, personalized security recommendations, and automated victim support
+**Special Features:**
+- **Dual-Mode Reporting**: `is_anonymous` flag controls privacy; if true and user is authenticated, `user_id` is set to NULL
+- **Photo Upload**: Separate endpoint for uploading photos before report submission
+- **Victim Support**: Automatic generation of context-aware recommendations when `impact != ninguno`
+- **Privacy Filtering**: GET endpoints filter sensitive data for non-admin users
+
+## CommunityModule (Spanish: `comunidad/`)
+**Responsibility:** Community intelligence features including threat trends analysis, comprehensive analytics, and community alert system
 
 **Key Interfaces:**
-- GET `/community/trends` - Popular attack patterns and trends
-- GET `/community/recommendations/:reportId` - Personalized security advice
-- GET `/community/support/:reportId` - Victim support resources
-- GET `/community/analytics` - Community-level threat analytics
+- GET `/comunidad/tendencias` - Attack type distribution trends (7/30/90 day periods)
+- GET `/comunidad/analytics` - Comprehensive analytics with attack types, impacts, and time-based distributions
+- GET `/comunidad/alerta` - Community threat alert level (verde/amarillo/rojo) based on recent activity
 
-**Dependencies:** ReportingModule, AnalyticsService, RecommendationEngine
+**Dependencies:** ComunidadService, ComunidadRepository, ReportingModule, CatalogMappingService
 
-**Technology Stack:** Data aggregation queries, caching for performance, recommendation algorithms
+**Technology Stack:**
+- Data aggregation queries with MySQL
+- Direct SQL queries for performance
+- Spanish localization for all responses
+- Time-period based analysis
+
+**Special Features:**
+- **Alert Levels**: Dynamic threat level calculation based on reports in last 24 hours
+  - Verde (green): < 5 reports
+  - Amarillo (yellow): 5-15 reports
+  - Rojo (red): > 15 reports
+- **Anonymous Usage Tracking**: Insights into anonymous vs identified reporting patterns
+- **Percentage Calculations**: Automatic distribution percentages for all metrics
 
 ## AdminModule
-**Responsibility:** Administrative portal functionality including report management, advanced filtering, status updates, and investigation tracking
+**Responsibility:** Administrative portal functionality including admin authentication, report management, user management, dashboard statistics, and investigation tracking
 
 **Key Interfaces:**
-- GET `/admin/dashboard` - Admin dashboard with key metrics
-- GET `/admin/reports` - Advanced report search and filtering
-- PUT `/admin/reports/:id/notes` - Add investigation notes
-- GET `/admin/analytics` - Comprehensive platform analytics
-- GET `/admin/exports` - Data export functionality
+- POST `/admin/login` - Admin authentication (separate from user auth)
+- POST `/admin/register` - Register new admin user
+- GET `/admin/validate-token` - Validate admin JWT token
+- GET `/admin/dashboard` - Basic dashboard statistics
+- GET `/admin/dashboard/enhanced` - Enhanced dashboard with trends and distributions
+- GET `/admin/users/list` - List all users
+- GET `/admin/users/:id` - Get specific user details
+- GET `/admin/reports` - Filtered reports list with full details
+- GET `/admin/reports/search` - Advanced report search with highlighting
+- GET `/admin/reports/:id` - Get specific report (admin view)
+- PUT `/admin/reports/:id/status` - Update report status with optional notes
+- GET `/admin/reports/:id/notes` - Get report notes (stub implementation)
+- POST `/admin/reports/:id/notes` - Add report note (stub implementation)
+- PUT `/admin/notes/:id` - Update note (stub implementation)
+- POST `/admin/notes/:id` - Delete note (stub implementation)
 
-**Dependencies:** ReportingModule, CommunityModule, AuthModule (admin guards)
+**Dependencies:** AdminService, AdminRepository, UsersService, ReportesService, CatalogMappingService, AuthModule (AdminAuthGuard)
 
-**Technology Stack:** Advanced MySQL queries, data export utilities, admin-specific Guards
+**Technology Stack:**
+- Advanced MySQL queries with JOINs
+- AdminAuthGuard for JWT-based admin authentication
+- Service reuse pattern (imports UsersService and ReportesService)
+- Separate `admins` table from regular users
+
+**Special Features:**
+- **Service Reuse**: AdminModule imports and reuses existing UsersService and ReportesService following DRY principle
+- **Enhanced Statistics**: Weekly/monthly trends, status distribution, attack type breakdown, impact distribution, response time metrics
+- **Admin Notes**: Basic implementation via `admin_notes` field in reports table; separate notes endpoints are stubs
+- **User Management**: Full CRUD operations on user accounts
+- **Report Management**: Complete filtering, search, view, and status update capabilities
+
+## CatalogModule
+**Responsibility:** Centralized catalog management and bidirectional ID ↔ string mapping for attack types, impacts, and statuses
+
+**Key Components:**
+- CatalogRepository - Database queries for catalog tables
+- CatalogMappingService - Bidirectional conversion between IDs and string values
+
+**Technology Stack:**
+- Direct MySQL queries to catalog tables
+- TypeScript enums for type safety
+- Shared across all modules
+
+**Special Features:**
+- **Bidirectional Mapping**: Converts between database IDs (integers) and API strings
+  - Database stores: `attack_type: 1`
+  - API accepts/returns: `attack_type: "email"`
+- **Centralized Management**: Single source of truth for all catalog data
+- **Legacy Compatibility**: Maintains string-based API while using normalized database
+- **Automatic Conversion**: Repositories handle transformation transparently
+
+**Catalog Mappings:**
+- **Attack Types**: 1=email, 2=SMS, 3=whatsapp, 4=llamada, 5=redes_sociales, 6=otro
+- **Impacts**: 1=ninguno, 2=robo_datos, 3=robo_dinero, 4=cuenta_comprometida
+- **Status**: 1=nuevo, 2=revisado, 3=en_investigacion, 4=cerrado
 
 ## iOS Mobile Application Components
 

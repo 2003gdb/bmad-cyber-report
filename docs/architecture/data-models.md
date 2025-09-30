@@ -72,27 +72,51 @@
 - Many-to-One with Impact
 - Many-to-One with Status
 
-## AdminUser Model
+## Admin Model
 **Purpose:** Administrative portal access for SafeTrade company users
+
+**Table Name:** `admins` (not `admin_users`)
 
 **Key Attributes:**
 - id: INT AUTO_INCREMENT (Primary Key) - Unique admin identifier
 - email: VARCHAR(255) - Admin email address
 - pass_hash: VARCHAR(255) - bcrypt hashed password
 - salt: VARCHAR(255) - Unique cryptographic salt for password hashing
-- created_at: TIMESTAMP - Account creation timestamp
+- created_at: DATETIME - Account creation timestamp
 
 **Relationships:**
 - Independent entity (no direct relationships with user reports for privacy)
+
+**Authentication:**
+- Separate JWT tokens from regular users (AdminAuthGuard)
+- Admin registration endpoint available (`POST /admin/register`)
+- Token validation endpoint (`GET /admin/validate-token`)
+
+## Implementation Notes
+
+### Functional Features:
+- ✅ **User profile management** fully implemented (email, name, password updates)
+- ✅ **Anonymous reporting** via dual-mode (`is_anonymous` flag + `user_id` NULL handling)
+- ✅ **Photo upload system** using Multer with disk storage
+- ✅ **Victim support system** with context-aware recommendations
+- ✅ **Community intelligence** with trend analysis and alert levels
+- ✅ **Admin dashboard** with basic and enhanced statistics
+
+### Stub Implementations:
+- ⚠️ **Admin notes endpoints** exist but return mock data (notes table not yet created)
 
 ## Data Model Changes
 
 ### Key Improvements from Previous Version:
 
 1. **Normalized Catalog Structure**: Replaced ENUM fields with foreign key relationships to separate catalog tables
-2. **Simplified Evidence Handling**: Single `evidence_url` field replaces complex attachment table
-3. **Enhanced Timestamp Handling**: Combined `incident_date` and `incident_time` into single TIMESTAMP field
-4. **Consistent Naming**: Updated `password_hash` to `pass_hash` across User and AdminUser models
+2. **Simplified Evidence Handling**: Single `evidence_url` field stores path to uploaded photos
+3. **Enhanced Timestamp Handling**: Combined `incident_date` and `incident_time` into single DATETIME field
+4. **Consistent Naming**:
+   - Updated `password_hash` to `pass_hash` across User and Admin models
+   - Updated `admin_users` to `admins` table name (actual implementation)
+   - TIMESTAMP → DATETIME for all timestamp fields
+5. **Photo Upload Integration**: Multer-based file upload with `/public/uploads/` storage
 
 ### Benefits:
 
@@ -101,9 +125,16 @@
 - **Query Performance**: Optimized indexes on foreign key relationships
 - **Maintainability**: Centralized catalog management through dedicated tables
 - **Flexibility**: Support for future internationalization through catalog table extensions
+- **Simplicity**: File storage at application level, not in database
 
-### Migration Considerations:
+### Catalog Mapping System:
 
-- Existing ENUM values map directly to initial catalog table entries
-- Foreign key IDs replace string values in application logic
-- APIs maintain backward compatibility through automatic conversion layers
+The `CatalogMappingService` provides bidirectional conversion between database IDs and string values:
+- **Database storage**: Integer foreign keys (e.g., `attack_type: 1`)
+- **API interface**: String values for legacy compatibility (e.g., `attack_type: "email"`)
+- **Automatic transformation**: Repositories handle conversion transparently
+
+**Catalog ID Mappings:**
+- **Attack Types**: 1=email, 2=SMS, 3=whatsapp, 4=llamada, 5=redes_sociales, 6=otro
+- **Impacts**: 1=ninguno, 2=robo_datos, 3=robo_dinero, 4=cuenta_comprometida
+- **Status**: 1=nuevo, 2=revisado, 3=en_investigacion, 4=cerrado

@@ -150,38 +150,64 @@ graph TB
 ## Implemented Spanish Endpoints
 
 **Current Implementation Status:**
-The SafeTrade backend has been successfully restructured with the following Spanish endpoints:
+The SafeTrade backend has been successfully restructured with the following Spanish endpoints. **Note:** All routes are at root level (no `/api/v1` prefix).
 
 ### Authentication & User Management
-- `POST /auth/login` - User authentication
-- `POST /auth/refresh` - Token renewal
+- `POST /auth/login` - User authentication with access and refresh tokens
+- `POST /auth/refresh` - Token renewal using refresh token
 - `GET /auth/profile` - User profile (requires JWT)
-- `POST /users/register` - User registration
+- `POST /users/register` - User registration (returns tokens immediately)
 - `GET /users/profile` - User profile (authenticated)
+- `PUT /users/profile/email` - Update user email (requires password verification)
+- `PUT /users/profile/name` - Update user name (requires password verification)
+- `PUT /users/profile/password` - Change user password (requires old password)
 
 ### Incident Reporting (Spanish Module Names)
 - `POST /reportes` - Create cybersecurity incident report (anonymous + authenticated) using normalized IDs
-- `GET /reportes/:id` - Get specific report details with catalog names
+- `POST /reportes/upload-photo` - Upload evidence photo (JPEG, PNG, HEIC/HEIF supported)
+- `GET /reportes` - Get all reports with pagination and filters (admin only)
+- `GET /reportes/:id` - Get specific report details with catalog names (privacy-filtered for regular users)
 - `GET /reportes/user/mis-reportes` - User's own reports (authenticated)
 - `GET /reportes/catalogs` - Get all catalog data (attack types, impacts, statuses)
 
 ### Community Intelligence (Spanish Module Names)
-- `GET /comunidad/tendencias` - Community threat trends with Spanish translations
-- `GET /comunidad/analytics` - Community analytics and insights
-- `GET /comunidad/alerta` - Community alert status
+- `GET /comunidad/tendencias` - Community threat trends with Spanish translations (7/30/90 day periods)
+- `GET /comunidad/analytics` - Community analytics and insights with distribution data
+- `GET /comunidad/alerta` - Community alert status (verde/amarillo/rojo levels)
 
 ### Admin Management (Reuses Services)
 - `POST /admin/login` - Admin authentication
+- `POST /admin/register` - Register new admin user
+- `GET /admin/validate-token` - Validate admin JWT token
+- `GET /admin/dashboard` - Basic admin dashboard statistics
+- `GET /admin/dashboard/enhanced` - Enhanced dashboard with trends and distributions
 - `GET /admin/users/list` - All users list (admin only)
 - `GET /admin/users/:id` - Specific user details (admin only)
-- `GET /admin/dashboard` - Admin dashboard statistics
-- `GET /admin/reportes` - Filtered reports list (admin only)
+- `GET /admin/reports` - Filtered reports list with full details (admin only)
+- `GET /admin/reports/search` - Advanced report search with highlighting
+- `GET /admin/reports/:id` - Specific report full details (admin only)
+- `PUT /admin/reports/:id/status` - Update report status with optional notes
+- `GET /admin/reports/:id/notes` - Get report notes (stub implementation)
+- `POST /admin/reports/:id/notes` - Add report note (stub implementation)
+- `PUT /admin/notes/:id` - Update note (stub implementation)
+- `POST /admin/notes/:id` - Delete note (stub implementation)
 
 ### Key Implementation Features
 - **Module Reuse**: AdminModule imports and reuses UsersService and ReportesService
-- **Triple Authentication**: Anonymous, JWT user tokens, JWT admin tokens
-- **Spanish Localization**: All responses, error messages, and DTOs in Spanish
+- **Triple Authentication**:
+  - Anonymous access via AnonymousAuthGuard (allows unauthenticated report submission)
+  - JWT user tokens via JwtAuthGuard
+  - JWT admin tokens via AdminAuthGuard
+- **Spanish Localization**: All responses, error messages, validation messages, and DTOs in Spanish
 - **Normalized Database**: Catalog tables (attack_types, impacts, status) replace ENUMs for better scalability
-- **Evidence URL Support**: Simplified evidence handling through URL fields instead of file uploads
+- **Photo Upload System**: Multer-based file upload with disk storage in `/public/uploads/` directory
+  - Supported formats: JPEG, PNG, HEIC/HEIF
+  - Unique filename generation: `timestamp-uuid-extension`
+  - Returns relative URL path for database storage
+- **Dual-Mode Reporting**: Users can submit reports anonymously or while authenticated
+  - `is_anonymous` flag controls privacy
+  - If authenticated user submits anonymously, `user_id` is set to NULL
+- **Catalog Mapping Service**: Centralized bidirectional conversion between database IDs and string values
+- **Victim Support System**: Automatic generation of context-aware recommendations based on attack type and impact
 - **Community Intelligence**: Automated threat trend analysis with catalog-based data aggregation
-- **Database Performance**: Direct MySQL queries with foreign key relationships and proper indexing
+- **Database Performance**: Direct MySQL queries with connection pooling, foreign key relationships, and proper indexing
