@@ -15,8 +15,7 @@ export interface LegacyReport {
   user_id: number | null;
   is_anonymous: boolean;
   attack_type: string; // ENUM string
-  incident_date: string;
-  incident_time: string | null;
+  incident_date: Date;
   attack_origin: string | null;
   suspicious_url: string | null;
   message_content: string | null;
@@ -36,8 +35,7 @@ export interface CreateLegacyReportData {
   user_id?: number | null;
   is_anonymous: boolean;
   attack_type: string;
-  incident_date: string;
-  incident_time?: string;
+  incident_date: string | Date;
   attack_origin: string;
   suspicious_url?: string;
   message_content?: string;
@@ -73,10 +71,10 @@ export class ReportsRepository {
       throw new Error(`Invalid enum values: attack_type=${data.attack_type}, impact_level=${data.impact_level}`);
     }
 
-    // Combine date and time into a single timestamp
-    const incidentDateTime = data.incident_time
-      ? new Date(`${data.incident_date} ${data.incident_time}`)
-      : new Date(`${data.incident_date} 00:00:00`);
+    // Convert incident_date to Date if it's a string
+    const incidentDateTime = typeof data.incident_date === 'string'
+      ? new Date(data.incident_date)
+      : data.incident_date;
 
     return {
       user_id: data.user_id ?? null,
@@ -97,15 +95,12 @@ export class ReportsRepository {
    * Convert normalized database row to legacy format for API response
    */
   private convertToLegacy(row: any): LegacyReport {
-    const incidentDate = new Date(row.incident_date);
-
     return {
       id: row.id,
       user_id: row.user_id,
       is_anonymous: Boolean(row.is_anonymous),
       attack_type: this.catalogMappingService.getAttackTypeString(row.attack_type),
-      incident_date: incidentDate.toISOString().split('T')[0],
-      incident_time: incidentDate.toTimeString().split(' ')[0],
+      incident_date: new Date(row.incident_date),
       attack_origin: row.attack_origin,
       suspicious_url: row.suspicious_url,
       message_content: row.message_content,

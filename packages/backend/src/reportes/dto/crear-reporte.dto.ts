@@ -24,22 +24,12 @@ export class CrearReporteDto {
     attack_type!: string;
 
     @ApiProperty({
-        example: "2025-01-15",
-        description: "Fecha cuando ocurrió el ataque (YYYY-MM-DD)",
+        example: "2025-01-15T14:30:00.000Z",
+        description: "Fecha y hora cuando ocurrió el ataque (ISO 8601 format)",
         required: true
     })
-    @IsDateString({}, { message: "La fecha debe tener formato válido (YYYY-MM-DD)" })
+    @IsDateString({}, { message: "La fecha debe tener formato ISO 8601 válido (YYYY-MM-DDTHH:mm:ss.sssZ)" })
     incident_date!: string;
-
-    @ApiProperty({
-        example: "14:30:00",
-        description: "Hora cuando ocurrió el ataque (HH:MM:SS)",
-        required: false
-    })
-    @IsOptional()
-    @IsString({ message: "La hora debe ser una cadena válida" })
-    @Matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/, { message: "La hora debe tener formato HH:MM o HH:MM:SS" })
-    incident_time?: string;
 
     @ApiProperty({
         example: "scammer@fake.com",

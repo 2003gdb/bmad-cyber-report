@@ -25,12 +25,13 @@ export class ComunidadRepository {
     async getAttackTypeTrends(days: number = 30): Promise<TrendData[]> {
         const sql = `
             SELECT
-                attack_type,
+                at.name as attack_type,
                 COUNT(*) as count,
                 ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM reports WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY))), 2) as percentage
-            FROM reports
-            WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-            GROUP BY attack_type
+            FROM reports r
+            JOIN attack_types at ON r.attack_type = at.id
+            WHERE r.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+            GROUP BY at.name, at.id
             ORDER BY count DESC
         `;
         const [rows] = await this.db.getPool().query(sql, [days, days]);
@@ -40,12 +41,13 @@ export class ComunidadRepository {
     async getImpactLevelTrends(days: number = 30): Promise<TrendData[]> {
         const sql = `
             SELECT
-                impact as attack_type,
+                i.name as attack_type,
                 COUNT(*) as count,
                 ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM reports WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY))), 2) as percentage
-            FROM reports
-            WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-            GROUP BY impact
+            FROM reports r
+            JOIN impacts i ON r.impact = i.id
+            WHERE r.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+            GROUP BY i.name, i.id
             ORDER BY count DESC
         `;
         const [rows] = await this.db.getPool().query(sql, [days, days]);
@@ -75,12 +77,13 @@ export class ComunidadRepository {
         const [totalRows] = await this.db.getPool().query(totalSql, [days]);
         const total = (totalRows as { total: number }[])[0].total;
 
-        // Most common attack type
+        // Most common attack type (with catalog name)
         const mostCommonSql = `
-            SELECT attack_type, COUNT(*) as count
-            FROM reports
-            WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-            GROUP BY attack_type
+            SELECT at.name as attack_type, COUNT(*) as count
+            FROM reports r
+            JOIN attack_types at ON r.attack_type = at.id
+            WHERE r.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+            GROUP BY at.name, at.id
             ORDER BY count DESC
             LIMIT 1
         `;

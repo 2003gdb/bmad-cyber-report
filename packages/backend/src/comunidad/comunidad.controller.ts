@@ -79,7 +79,7 @@ export class ComunidadController {
             const alertLevel = this.determineAlertLevel(tendencias, analytics);
             const alertMessage = this.generateAlertMessage(alertLevel, tendencias);
 
-            return {
+            const response = {
                 success: true,
                 alerta: {
                     nivel: alertLevel,
@@ -92,6 +92,8 @@ export class ComunidadController {
                     amenaza_principal: tendencias.summary.main_threat
                 }
             };
+
+            return response;
 
         } catch (error) {
             return {
