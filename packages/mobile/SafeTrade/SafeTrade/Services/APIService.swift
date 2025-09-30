@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import UIKit
 
 class APIService {
     static let shared = APIService()
@@ -145,61 +146,28 @@ extension APIService {
 
     /**
      * Create a new report using V2 format
-     * Uses string-based values directly with backend
+     * Encoder automatically splits Date into strings for backend
      */
-    func createReportV2(_ report: CreateReportV2, catalogData: CatalogData) async throws -> NormalizedReport {
-        // Create legacy request with string values (userId extracted from JWT token on backend)
-        let legacyRequest = CreateReportRequest(
-            isAnonymous: report.isAnonymous,
-            attackType: report.attackType,
-            incidentDate: report.incidentDate,
-            incidentTime: report.incidentTime,
-            attackOrigin: report.attackOrigin,
-            suspiciousUrl: report.suspiciousUrl,
-            messageContent: report.messageContent,
-            impactLevel: report.impactLevel,
-            description: report.description
-        )
-
+    func createReportV2(_ report: CreateReportV2, catalogData: CatalogData) async throws -> Report {
         let encoder = JSONEncoder()
-        let body = try encoder.encode(legacyRequest)
+        let body = try encoder.encode(report)  // Encoder splits incidentDate → date/time strings
 
-        // Call legacy endpoint and get legacy response
-        let response: CreateReportResponse = try await request(
+        // Call endpoint and get response
+        let response: CreateReportResponse = try await self.request(
             endpoint: "/reportes",
             method: .POST,
             body: body,
             responseType: CreateReportResponse.self
         )
 
-        // Convert legacy response to normalized format
-        guard let legacyReport = response.reporte else {
+        // Get the created report ID from response summary
+        guard let reportSummary = response.reporte else {
             throw APIError.invalidData
         }
 
-        // Parse the incident date
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let incidentDate = dateFormatter.date(from: report.incidentDate) ?? Date()
-
-        // Convert legacy report to normalized format
-        return NormalizedReport(
-            id: legacyReport.id,
-            userId: report.userId,
-            isAnonymous: report.isAnonymous,
-            attackType: report.attackType,
-            incidentDate: incidentDate,
-            evidenceUrl: report.evidenceUrl,
-            attackOrigin: report.attackOrigin,
-            suspiciousUrl: report.suspiciousUrl,
-            messageContent: report.messageContent,
-            description: report.description,
-            impactLevel: report.impactLevel,
-            status: "nuevo", // Default to 'nuevo'
-            adminNotes: nil,
-            createdAt: legacyReport.createdAt,
-            updatedAt: legacyReport.createdAt
-        )
+        // Fetch full report details from backend
+        // This ensures we get complete data with proper decoder handling
+        return try await getReportById(reportSummary.id)
     }
 
     /**
@@ -228,11 +196,95 @@ extension APIService {
      * Get a specific report by ID
      */
     func getReportById(_ id: Int) async throws -> ReportWithDetails {
-        return try await request(
+        // Backend returns wrapped response: {success, reporte}
+        struct GetReportByIdResponse: Codable {
+            let success: Bool
+            let reporte: ReportWithDetails?
+            let message: String?
+        }
+
+        let response: GetReportByIdResponse = try await request(
             endpoint: "/reportes/\(id)",
             method: .GET,
-            responseType: ReportWithDetails.self
+            responseType: GetReportByIdResponse.self
         )
+
+        guard let report = response.reporte else {
+            throw APIError.invalidData
+        }
+
+        return report
+    }
+
+    // MARK: - Photo Upload
+
+    /**
+     * Upload a photo for evidence
+     * Returns the URL path to the uploaded photo
+     */
+    func uploadPhoto(image: UIImage) async throws -> String {
+        let fullURL = "\(baseURL)/reportes/upload-photo"
+        guard let url = URL(string: fullURL) else {
+            throw APIError.invalidURL
+        }
+
+        // Convert image to JPEG data
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+            throw APIError.invalidData
+        }
+
+        // Create multipart form data
+        let boundary = UUID().uuidString
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        // Add authorization header if token exists
+        if let token = authToken {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        var body = Data()
+
+        // Add image data
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"photo\"; filename=\"photo.jpg\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
+        body.append(imageData)
+        body.append("\r\n".data(using: .utf8)!)
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+
+        request.httpBody = body
+
+        print("🖼️ Uploading photo (\(imageData.count) bytes)")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        print("📡 Upload Response Status: \(httpResponse.statusCode)")
+
+        guard 200...299 ~= httpResponse.statusCode else {
+            throw APIError.serverError(httpResponse.statusCode)
+        }
+
+        // Parse response to get URL
+        struct UploadResponse: Codable {
+            let success: Bool
+            let message: String
+            let url: String
+        }
+
+        let uploadResponse = try JSONDecoder().decode(UploadResponse.self, from: data)
+
+        guard uploadResponse.success else {
+            throw APIError.invalidResponse
+        }
+
+        print("✅ Photo uploaded: \(uploadResponse.url)")
+        return uploadResponse.url
     }
 
     // MARK: - Legacy Compatibility
@@ -240,14 +292,20 @@ extension APIService {
     /**
      * Create report using legacy format (converts to V2 internally)
      */
-    func createReportLegacy(_ request: CreateReportRequest, catalogData: CatalogData, userId: Int?) async throws -> NormalizedReport {
+    func createReportLegacy(_ request: CreateReportRequest, catalogData: CatalogData, userId: Int?) async throws -> Report {
+        // Combine legacy date+time strings into single Date
+        let dateTimeString = request.incidentDate + "T" + (request.incidentTime ?? "00:00:00")
+        let isoFormatter = ISO8601DateFormatter()
+        guard let incidentDateTime = isoFormatter.date(from: dateTimeString) else {
+            throw APIError.invalidData
+        }
+
         let reportV2 = CreateReportV2(
             userId: request.isAnonymous ? nil : userId,
             isAnonymous: request.isAnonymous,
             attackType: request.attackType,
-            incidentDate: request.incidentDate,
-            incidentTime: request.incidentTime,
-            evidenceUrl: nil,
+            incidentDateTime: incidentDateTime,
+            evidenceUrl: request.evidenceUrl,
             attackOrigin: request.attackOrigin,
             suspiciousUrl: request.suspiciousUrl,
             messageContent: request.messageContent,

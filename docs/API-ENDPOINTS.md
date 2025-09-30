@@ -226,15 +226,23 @@ All endpoints are prefixed with `/api/v1` unless otherwise specified.
   {
     "is_anonymous": true,
     "attack_type": "email",
-    "incident_date": "2025-01-15",
-    "incident_time": "14:30:00",
-    "attack_origin": "email@sospechoso.com",
+    "incident_date": "2025-01-15T14:30:00.000Z",
+    "attack_origin": "scammer@fake.com",
     "suspicious_url": "https://phishing-site.com",
     "message_content": "Contenido del mensaje sospechoso",
     "impact_level": "robo_dinero",
     "description": "Descripción detallada del incidente"
   }
   ```
+- **Field Descriptions:**
+  - `is_anonymous` (boolean, optional, default: true): Whether the report is anonymous
+  - `attack_type` (string, required): Type of cyber attack - One of: "email", "SMS", "whatsapp", "llamada", "redes_sociales", "otro"
+  - `incident_date` (string, required): Date and time when attack occurred (ISO 8601 format: YYYY-MM-DDTHH:mm:ss.sssZ)
+  - `attack_origin` (string, required): Phone number or email address of attacker
+  - `suspicious_url` (string, optional): Suspicious URL related to the attack (max 2048 chars)
+  - `message_content` (string, optional): Original message content from attacker (max 5000 chars)
+  - `impact_level` (string, required): Impact level suffered - One of: "ninguno", "robo_datos", "robo_dinero", "cuenta_comprometida"
+  - `description` (string, optional): Detailed description of the incident
 - **Success Response (201):**
   ```json
   {
@@ -245,8 +253,12 @@ All endpoints are prefixed with `/api/v1` unless otherwise specified.
       "user_id": null,
       "is_anonymous": true,
       "attack_type": "email",
-      "incident_date": "2025-01-15",
+      "incident_date": "2025-01-15T14:30:00.000Z",
+      "attack_origin": "scammer@fake.com",
+      "suspicious_url": "https://phishing-site.com",
+      "message_content": "Contenido del mensaje sospechoso",
       "impact_level": "robo_dinero",
+      "description": "Descripción detallada del incidente",
       "status": "nuevo",
       "created_at": "2025-01-15T14:30:00.000Z"
     },
@@ -256,6 +268,10 @@ All endpoints are prefixed with `/api/v1` unless otherwise specified.
     }
   }
   ```
+- **Notes:**
+  - If authenticated user submits report, `user_id` will be set unless `is_anonymous: true`
+  - If impact level is not "ninguno", `victim_support` will be included in response
+  - Anonymous users can submit reports without authentication
 
 ### Get All Reports
 - **Endpoint:** `GET /reportes`
@@ -291,7 +307,7 @@ All endpoints are prefixed with `/api/v1` unless otherwise specified.
 
 ### Get Report by ID
 - **Endpoint:** `GET /reportes/:id`
-- **Description:** Get specific report details
+- **Description:** Get specific report details (sensitive information filtered)
 - **Authentication:** Optional (Bearer Token or Anonymous)
 - **Success Response (200):**
   ```json
@@ -300,8 +316,7 @@ All endpoints are prefixed with `/api/v1` unless otherwise specified.
     "reporte": {
       "id": 1,
       "attack_type": "email",
-      "incident_date": "2025-01-15",
-      "incident_time": "14:30:00",
+      "incident_date": "2025-01-15T14:30:00.000Z",
       "impact_level": "robo_dinero",
       "description": "Descripción del incidente",
       "status": "nuevo",
@@ -311,6 +326,10 @@ All endpoints are prefixed with `/api/v1` unless otherwise specified.
   }
   ```
 - **Error Response (404):** Reporte no encontrado
+- **Notes:**
+  - Sensitive information (attack_origin, suspicious_url, message_content) is NOT exposed in this endpoint
+  - `user_info` is only included if report is not anonymous AND requesting user owns the report
+  - `user_info` contains: `{ "email": "user@example.com", "name": "User Name" }`
 
 ### Get User's Reports
 - **Endpoint:** `GET /reportes/user/mis-reportes`

@@ -311,19 +311,32 @@ function ReportDetailContent({ params }: ReportDetailPageProps) {
                   </div>
                 )}
 
-                {/* Evidence URL */}
+                {/* Evidence Photo */}
                 {report.evidence_url && (
                   <div className="mt-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-3">Evidencia</h3>
-                    <div>
-                      <a
-                        href={report.evidence_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 text-sm"
-                      >
-                        Ver evidencia
-                      </a>
+                    <h3 className="text-lg font-medium text-gray-900 mb-3">Evidencia Fotográfica</h3>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <img
+                        src={`http://localhost:3000${report.evidence_url}`}
+                        alt="Evidencia del reporte"
+                        className="max-w-full h-auto rounded-lg shadow-md"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const errorMsg = target.parentElement?.querySelector('.error-msg');
+                          if (errorMsg) errorMsg.classList.remove('hidden');
+                        }}
+                      />
+                      <p className="error-msg hidden text-sm text-red-600 mt-2">
+                        Error al cargar la imagen. <a
+                          href={`http://localhost:3000${report.evidence_url}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 underline"
+                        >
+                          Abrir en nueva pestaña
+                        </a>
+                      </p>
                     </div>
                   </div>
                 )}

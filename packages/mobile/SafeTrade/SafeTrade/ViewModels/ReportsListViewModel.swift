@@ -36,6 +36,8 @@ class ReportsListViewModel: ObservableObject {
     @Published var selectedFilter: ReportFilter = .todos
     @Published var searchQuery: String = ""
     @Published var showingPopup = false
+    @Published var communityAlertLoading = false
+    @Published var communityAlertError: String?
 
     private let reportingService = ReportingService()
     private let communityService = CommunityService()
@@ -100,15 +102,39 @@ class ReportsListViewModel: ObservableObject {
 
     func loadCommunityAlert() {
         Task {
+            await MainActor.run {
+                self.communityAlertLoading = true
+                self.communityAlertError = nil
+            }
+
             do {
+                print("🔔 [ReportsListViewModel] Starting to load community alert...")
                 let response = try await communityService.getCommunityAlert()
+                print("🔔 [ReportsListViewModel] Got response - success: \(response.success)")
+
                 await MainActor.run {
+                    self.communityAlertLoading = false
+
                     if response.success {
+                        print("✅ [ReportsListViewModel] Alert loaded successfully: \(response.alerta.nivel)")
                         self.communityAlert = response.alerta
+                        self.communityAlertError = nil
+                    } else {
+                        let errorMsg = "Error del servidor al cargar alerta comunitaria"
+                        print("❌ [ReportsListViewModel] Backend returned success=false")
+                        self.communityAlertError = errorMsg
+                        self.communityAlert = nil
                     }
                 }
             } catch {
-                print("Error loading community alert: \(error)")
+                print("❌ [ReportsListViewModel] Error loading community alert: \(error)")
+                print("❌ [ReportsListViewModel] Error details: \(error.localizedDescription)")
+
+                await MainActor.run {
+                    self.communityAlertLoading = false
+                    self.communityAlertError = "No se pudo cargar la alerta comunitaria"
+                    self.communityAlert = nil
+                }
             }
         }
     }
@@ -161,7 +187,7 @@ class ReportsListViewModel: ObservableObject {
             let beforeSearch = reports.count
             reports = reports.filter { report in
                 report.getAttackTypeDisplayName().lowercased().contains(query) ||
-                report.attackOrigin.lowercased().contains(query) ||
+                (report.attackOrigin?.lowercased().contains(query) ?? false) ||
                 (report.description?.lowercased().contains(query) ?? false)
             }
             print("🔎 After search filter: \(beforeSearch) → \(reports.count)")
@@ -265,7 +291,7 @@ class ReportsListViewModel: ObservableObject {
     }
 
     func reporterName(for report: Report) -> String {
-        if report.isAnonymous {
+        if report.isAnonymous == true {
             return "Anónimo"
         }
         // For now, return placeholder - in real app this would come from user data

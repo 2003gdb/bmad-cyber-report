@@ -37,6 +37,7 @@ export interface CreateLegacyReportData {
   attack_type: string;
   incident_date: string | Date;
   attack_origin: string;
+  evidence_url?: string;
   suspicious_url?: string;
   message_content?: string;
   impact_level: string;
@@ -81,7 +82,7 @@ export class ReportsRepository {
       is_anonymous: data.is_anonymous,
       attack_type: attackTypeId,
       incident_date: incidentDateTime,
-      evidence_url: data.suspicious_url ?? null,
+      evidence_url: data.evidence_url ?? null,
       attack_origin: data.attack_origin ?? null,
       suspicious_url: data.suspicious_url ?? null,
       message_content: data.message_content ?? null,

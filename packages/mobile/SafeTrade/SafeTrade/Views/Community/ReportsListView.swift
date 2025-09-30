@@ -60,10 +60,14 @@ struct ReportsListView: View {
                 }
             }
         }
-        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
+        .alert("Error", isPresented: Binding(
+            get: { viewModel.errorMessage != nil },
+            set: { if !$0 { viewModel.errorMessage = nil } }
+        )) {
             Button("Reintentar") {
                 viewModel.refreshData()
             }
+            Button("Cancelar", role: .cancel) { }
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
@@ -71,7 +75,9 @@ struct ReportsListView: View {
             if viewModel.showingPopup {
                 PopupOverlayView(
                     isPresented: $viewModel.showingPopup,
-                    communityAlert: viewModel.communityAlert
+                    communityAlert: viewModel.communityAlert,
+                    isLoading: viewModel.communityAlertLoading,
+                    errorMessage: viewModel.communityAlertError
                 )
             }
         }
@@ -286,6 +292,8 @@ struct LoadingView: View {
 struct PopupOverlayView: View {
     @Binding var isPresented: Bool
     let communityAlert: CommunityAlert?
+    let isLoading: Bool
+    let errorMessage: String?
 
     var body: some View {
         ZStack {
@@ -298,22 +306,110 @@ struct PopupOverlayView: View {
                     }
                 }
 
-            // Alert card
-            if let alert = communityAlert {
-                VStack {
-                    Spacer()
+            VStack {
+                Spacer()
 
-                    CommunityAlertCard(alert: alert)
-                        .padding(.horizontal, 20)
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .bottom).combined(with: .opacity),
-                            removal: .move(edge: .bottom).combined(with: .opacity)
-                        ))
-                    Spacer()
+                // Content based on state
+                Group {
+                    if isLoading {
+                        LoadingAlertCard()
+                    } else if let error = errorMessage {
+                        ErrorAlertCard(errorMessage: error)
+                    } else if let alert = communityAlert {
+                        CommunityAlertCard(alert: alert)
+                    } else {
+                        EmptyAlertCard()
+                    }
                 }
+                .padding(.horizontal, 20)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .bottom).combined(with: .opacity),
+                    removal: .move(edge: .bottom).combined(with: .opacity)
+                ))
+
+                Spacer()
             }
         }
         .animation(.easeInOut(duration: 0.3), value: isPresented)
+    }
+}
+
+// MARK: - Loading Alert Card
+struct LoadingAlertCard: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .scaleEffect(1.5)
+
+            Text("Cargando alerta comunitaria...")
+                .font(.body)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(32)
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+    }
+}
+
+// MARK: - Error Alert Card
+struct ErrorAlertCard: View {
+    let errorMessage: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(.orange)
+                    .font(.title2)
+
+                Text("Error")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+
+                Spacer()
+            }
+
+            Text(errorMessage)
+                .font(.body)
+                .foregroundColor(.secondary)
+
+            Text("Intenta nuevamente más tarde o verifica tu conexión.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+    }
+}
+
+// MARK: - Empty Alert Card
+struct EmptyAlertCard: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "info.circle.fill")
+                    .foregroundColor(.blue)
+                    .font(.title2)
+
+                Text("Sin Información")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+
+                Spacer()
+            }
+
+            Text("No hay información de alerta disponible en este momento.")
+                .font(.body)
+                .foregroundColor(.secondary)
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
     }
 }
 

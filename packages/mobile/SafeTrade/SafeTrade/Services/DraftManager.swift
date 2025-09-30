@@ -12,8 +12,7 @@ struct ReportDraft: Codable {
     let isAnonymous: Bool
     let selectedAttackTypeId: Int?
     let selectedImpactId: Int?
-    let incidentDate: Date
-    let incidentTime: String
+    let incidentDate: Date // Combined date+time (matches DB schema)
     let attackOrigin: String
     let suspiciousUrl: String
     let messageContent: String
@@ -32,7 +31,6 @@ struct ReportDraft: Codable {
         self.selectedAttackTypeId = viewModel.selectedAttackTypeId
         self.selectedImpactId = viewModel.selectedImpactId
         self.incidentDate = viewModel.incidentDate
-        self.incidentTime = viewModel.incidentTime
         self.attackOrigin = viewModel.attackOrigin
         self.suspiciousUrl = viewModel.suspiciousUrl
         self.messageContent = viewModel.messageContent
@@ -143,7 +141,6 @@ class DraftManager: ObservableObject {
         viewModel.selectedAttackTypeId = draft.selectedAttackTypeId
         viewModel.selectedImpactId = draft.selectedImpactId
         viewModel.incidentDate = draft.incidentDate
-        viewModel.incidentTime = draft.incidentTime
         viewModel.attackOrigin = draft.attackOrigin
         viewModel.suspiciousUrl = draft.suspiciousUrl
         viewModel.messageContent = draft.messageContent

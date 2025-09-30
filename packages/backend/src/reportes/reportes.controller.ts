@@ -1,11 +1,15 @@
-import { Body, Controller, Get, Post, Param, UseGuards, Req, Query } from "@nestjs/common";
+import { Body, Controller, Get, Post, Param, UseGuards, Req, Query, UseInterceptors, UploadedFile } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { ReportesService } from "./reportes.service";
 import { CrearReporteDto } from "./dto/crear-reporte.dto";
 import { AnonymousAuthGuard } from "src/common/guards/anonymous-auth.guard";
 import { JwtAuthGuard } from "src/common/guards/jwt-auth.guard";
 import type { AuthenticatedRequest } from "src/common/interfaces/authenticated-request";
-import { ApiBearerAuth, ApiResponse, ApiTags, ApiQuery, ApiProperty } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiResponse, ApiTags, ApiQuery, ApiProperty, ApiConsumes } from "@nestjs/swagger";
 import { IsOptional, IsString } from "class-validator";
+import { diskStorage } from "multer";
+import { extname } from "path";
+import { v4 as uuidv4 } from "uuid";
 
 export class ReportFilterDto {
     @ApiProperty({ example: "nuevo", required: false })
@@ -72,6 +76,7 @@ export class ReportesController {
                 attack_type: crearReporteDto.attack_type,
                 incident_date: crearReporteDto.incident_date,
                 attack_origin: crearReporteDto.attack_origin,
+                evidence_url: crearReporteDto.evidence_url,
                 suspicious_url: crearReporteDto.suspicious_url,
                 message_content: crearReporteDto.message_content,
                 impact_level: crearReporteDto.impact_level,
@@ -230,6 +235,47 @@ export class ReportesController {
         return {
             success: true,
             reporte: safeReporte
+        };
+    }
+
+    @Post('upload-photo')
+    @UseGuards(AnonymousAuthGuard) // Allow both anonymous and authenticated users
+    @UseInterceptors(FileInterceptor('photo', {
+        storage: diskStorage({
+            destination: './public/uploads',
+            filename: (req, file, callback) => {
+                const uniqueName = `${Date.now()}-${uuidv4()}${extname(file.originalname)}`;
+                callback(null, uniqueName);
+            }
+        }),
+        fileFilter: (req, file, callback) => {
+            // Accept images only
+            const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/heic', 'image/heif'];
+            if (allowedMimeTypes.includes(file.mimetype)) {
+                callback(null, true);
+            } else {
+                callback(new Error('Solo se permiten archivos de imagen (JPG, PNG, HEIC)'), false);
+            }
+        }
+    }))
+    @ApiConsumes('multipart/form-data')
+    @ApiResponse({ status: 201, description: 'Foto subida exitosamente' })
+    @ApiResponse({ status: 400, description: 'Archivo inválido' })
+    async uploadPhoto(@UploadedFile() file: Express.Multer.File) {
+        if (!file) {
+            return {
+                success: false,
+                message: "No se proporcionó ningún archivo"
+            };
+        }
+
+        // Return the URL path (relative to server)
+        const url = `/uploads/${file.filename}`;
+
+        return {
+            success: true,
+            message: "Foto subida exitosamente",
+            url: url
         };
     }
 }

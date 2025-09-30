@@ -40,6 +40,15 @@ export class CrearReporteDto {
     attack_origin!: string;
 
     @ApiProperty({
+        example: "/uploads/1234567890-uuid.jpg",
+        description: "URL de la foto/evidencia subida",
+        required: false
+    })
+    @IsOptional()
+    @IsString({ message: "La URL de evidencia debe ser una cadena válida" })
+    evidence_url?: string;
+
+    @ApiProperty({
         example: "https://fake-bank.com/login",
         description: "URL sospechosa relacionada con el ataque",
         required: false

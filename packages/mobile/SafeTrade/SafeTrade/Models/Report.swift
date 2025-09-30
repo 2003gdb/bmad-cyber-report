@@ -1,137 +1,8 @@
 import Foundation
 
-struct Report: Codable, Identifiable {
-    let id: Int
-    let userId: Int? // Null for anonymous reports
-    let attackType: String // String value from backend catalog
-    let incidentDate: String // Backend uses string format YYYY-MM-DD
-    let incidentTime: String?
-    let attackOrigin: String
-    let suspiciousUrl: String?
-    let messageContent: String?
-    let impactLevel: String // String value from backend catalog
-    let description: String?
-    let isAnonymous: Bool
-    let status: String // String value from backend catalog
-    let evidenceUrl: String? // NEW: URL to uploaded evidence
-    let adminNotes: String? // NEW: Admin investigation notes
-    let createdAt: Date
-    let updatedAt: Date
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case userId = "user_id"
-        case attackType = "attack_type"
-        case incidentDate = "incident_date"
-        case incidentTime = "incident_time"
-        case attackOrigin = "attack_origin"
-        case suspiciousUrl = "suspicious_url"
-        case messageContent = "message_content"
-        case impactLevel = "impact_level"
-        case description
-        case isAnonymous = "is_anonymous"
-        case status
-        case evidenceUrl = "evidence_url"
-        case adminNotes = "admin_notes"
-        case createdAt = "created_at"
-        case updatedAt = "updated_at"
-    }
-
-    // Explicit initializer for creating instances programmatically
-    init(id: Int, userId: Int?, attackType: String, incidentDate: String, incidentTime: String?,
-         attackOrigin: String, suspiciousUrl: String?, messageContent: String?, impactLevel: String,
-         description: String?, isAnonymous: Bool, status: String, evidenceUrl: String? = nil,
-         adminNotes: String? = nil, createdAt: Date, updatedAt: Date) {
-        self.id = id
-        self.userId = userId
-        self.attackType = attackType
-        self.incidentDate = incidentDate
-        self.incidentTime = incidentTime
-        self.attackOrigin = attackOrigin
-        self.suspiciousUrl = suspiciousUrl
-        self.messageContent = messageContent
-        self.impactLevel = impactLevel
-        self.description = description
-        self.isAnonymous = isAnonymous
-        self.status = status
-        self.evidenceUrl = evidenceUrl
-        self.adminNotes = adminNotes
-        self.createdAt = createdAt
-        self.updatedAt = updatedAt
-    }
-
-    // Computed property for Date conversion
-    var incidentDateTime: Date? {
-        let dateTimeString = incidentDate + "T" + (incidentTime ?? "00:00:00")
-        let formatter = ISO8601DateFormatter()
-        return formatter.date(from: dateTimeString)
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(Int.self, forKey: .id)
-        userId = try container.decodeIfPresent(Int.self, forKey: .userId)
-        attackType = try container.decode(String.self, forKey: .attackType)
-        incidentDate = try container.decode(String.self, forKey: .incidentDate)
-        incidentTime = try container.decodeIfPresent(String.self, forKey: .incidentTime)
-        attackOrigin = try container.decode(String.self, forKey: .attackOrigin)
-        suspiciousUrl = try container.decodeIfPresent(String.self, forKey: .suspiciousUrl)
-        messageContent = try container.decodeIfPresent(String.self, forKey: .messageContent)
-        impactLevel = try container.decode(String.self, forKey: .impactLevel)
-        description = try container.decodeIfPresent(String.self, forKey: .description)
-        isAnonymous = try container.decode(Bool.self, forKey: .isAnonymous)
-        status = try container.decode(String.self, forKey: .status)
-        evidenceUrl = try container.decodeIfPresent(String.self, forKey: .evidenceUrl)
-        adminNotes = try container.decodeIfPresent(String.self, forKey: .adminNotes)
-
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-
-        let createdAtString = try container.decode(String.self, forKey: .createdAt)
-        if let date = formatter.date(from: createdAtString) {
-            createdAt = date
-        } else {
-            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Invalid createdAt date format"))
-        }
-
-        let updatedAtString = try container.decode(String.self, forKey: .updatedAt)
-        if let date = formatter.date(from: updatedAtString) {
-            updatedAt = date
-        } else {
-            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Invalid updatedAt date format"))
-        }
-    }
-
-    // MARK: - Display Helpers (use catalog system for new code)
-
-    // Get display name for attack type using catalog
-    func getAttackTypeDisplayName() -> String {
-        return CatalogHelpers.getLocalizedName(for: attackType)
-    }
-
-    // Get display name for impact level using catalog
-    func getImpactLevelDisplayName() -> String {
-        return CatalogHelpers.getLocalizedName(for: impactLevel)
-    }
-
-    // Get display name for status using catalog
-    func getStatusDisplayName() -> String {
-        return CatalogHelpers.getLocalizedName(for: status)
-    }
-
-    // Legacy compatibility - convert to old enum types if needed
-    var legacyAttackType: LegacyAttackType? {
-        return LegacyAttackType.from(catalogValue: attackType)
-    }
-
-    var legacyImpactLevel: LegacyImpactLevel? {
-        return LegacyImpactLevel.from(catalogValue: impactLevel)
-    }
-
-    var legacyStatus: LegacyReportStatus? {
-        return LegacyReportStatus.from(catalogValue: status)
-    }
-}
+// MARK: - Legacy Enums for Backward Compatibility
+// NOTE: These are kept for DraftManager and UserPreferencesService compatibility
+// New code should use CatalogHelpers and string-based values from the backend
 
 // Legacy AttackType enum for backward compatibility (use CatalogHelpers for new code)
 enum LegacyAttackType: String, Codable, CaseIterable {
@@ -342,7 +213,7 @@ struct VictimSupport: Codable {
     let resources: [String]
 }
 
-// MARK: - Catalog System Models (from ReportV2)
+// MARK: - Catalog System Models
 
 // Dynamic coding key for flexible decoding
 struct DynamicCodingKeys: CodingKey {
@@ -457,13 +328,13 @@ struct CatalogCache: Codable {
     }
 }
 
-// MARK: - Normalized Report Model (String-based, Date for incidentDate)
-struct NormalizedReport: Codable, Identifiable {
+// MARK: - Report Model (TRUE V2 - matches database TIMESTAMP schema)
+struct Report: Codable, Identifiable {
     let id: Int
     let userId: Int?
-    let isAnonymous: Bool
+    let isAnonymous: Bool?
     let attackType: String
-    let incidentDate: Date // Date instead of String
+    let incidentDate: Date // Database TIMESTAMP - combined date+time
     let evidenceUrl: String?
     let attackOrigin: String?
     let suspiciousUrl: String?
@@ -473,7 +344,7 @@ struct NormalizedReport: Codable, Identifiable {
     let status: String
     let adminNotes: String?
     let createdAt: Date
-    let updatedAt: Date
+    let updatedAt: Date?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -492,18 +363,174 @@ struct NormalizedReport: Codable, Identifiable {
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
+
+    // Computed properties for legacy string format (for display/API)
+    var incidentDateString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: incidentDate)
+    }
+
+    var incidentTimeString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter.string(from: incidentDate)
+    }
+
+    // Backward compatibility alias
+    var incidentDateTime: Date {
+        return incidentDate
+    }
+
+    // Display helpers using catalog system
+    func getAttackTypeDisplayName() -> String {
+        return CatalogHelpers.getLocalizedName(for: attackType)
+    }
+
+    func getImpactLevelDisplayName() -> String {
+        return CatalogHelpers.getLocalizedName(for: impactLevel)
+    }
+
+    func getStatusDisplayName() -> String {
+        return CatalogHelpers.getLocalizedName(for: status)
+    }
+
+    // Explicit initializer for creating instances programmatically
+    init(id: Int, userId: Int?, isAnonymous: Bool?, attackType: String, incidentDate: Date,
+         evidenceUrl: String?, attackOrigin: String?, suspiciousUrl: String?,
+         messageContent: String?, description: String?, impactLevel: String, status: String,
+         adminNotes: String?, createdAt: Date, updatedAt: Date?) {
+        self.id = id
+        self.userId = userId
+        self.isAnonymous = isAnonymous
+        self.attackType = attackType
+        self.incidentDate = incidentDate
+        self.evidenceUrl = evidenceUrl
+        self.attackOrigin = attackOrigin
+        self.suspiciousUrl = suspiciousUrl
+        self.messageContent = messageContent
+        self.description = description
+        self.impactLevel = impactLevel
+        self.status = status
+        self.adminNotes = adminNotes
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+
+    // Custom decoder - handles Date/ISO8601 string from backend
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(Int.self, forKey: .id)
+        userId = try container.decodeIfPresent(Int.self, forKey: .userId)
+        isAnonymous = try container.decodeIfPresent(Bool.self, forKey: .isAnonymous)
+        attackType = try container.decode(String.self, forKey: .attackType)
+
+        // Try to decode as ISO8601 string first, then fall back to Date
+        if let dateString = try? container.decode(String.self, forKey: .incidentDate) {
+            let isoFormatter = ISO8601DateFormatter()
+            isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = isoFormatter.date(from: dateString) {
+                incidentDate = date
+            } else {
+                // Try without fractional seconds
+                isoFormatter.formatOptions = [.withInternetDateTime]
+                if let date = isoFormatter.date(from: dateString) {
+                    incidentDate = date
+                } else {
+                    throw DecodingError.dataCorrupted(DecodingError.Context(
+                        codingPath: decoder.codingPath,
+                        debugDescription: "Invalid incident date format: \(dateString)"
+                    ))
+                }
+            }
+        } else if let date = try? container.decode(Date.self, forKey: .incidentDate) {
+            incidentDate = date
+        } else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(
+                codingPath: decoder.codingPath,
+                debugDescription: "Could not decode incident_date"
+            ))
+        }
+
+        evidenceUrl = try container.decodeIfPresent(String.self, forKey: .evidenceUrl)
+        attackOrigin = try container.decodeIfPresent(String.self, forKey: .attackOrigin)
+        suspiciousUrl = try container.decodeIfPresent(String.self, forKey: .suspiciousUrl)
+        messageContent = try container.decodeIfPresent(String.self, forKey: .messageContent)
+        description = try container.decodeIfPresent(String.self, forKey: .description)
+        impactLevel = try container.decode(String.self, forKey: .impactLevel)
+        status = try container.decode(String.self, forKey: .status)
+        adminNotes = try container.decodeIfPresent(String.self, forKey: .adminNotes)
+
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        let createdAtString = try container.decode(String.self, forKey: .createdAt)
+        if let date = isoFormatter.date(from: createdAtString) {
+            createdAt = date
+        } else {
+            // Try without fractional seconds
+            isoFormatter.formatOptions = [.withInternetDateTime]
+            if let date = isoFormatter.date(from: createdAtString) {
+                createdAt = date
+            } else {
+                throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Invalid createdAt date format"))
+            }
+        }
+
+        if let updatedAtString = try? container.decode(String.self, forKey: .updatedAt) {
+            isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = isoFormatter.date(from: updatedAtString) {
+                updatedAt = date
+            } else {
+                isoFormatter.formatOptions = [.withInternetDateTime]
+                updatedAt = isoFormatter.date(from: updatedAtString)
+            }
+        } else {
+            updatedAt = nil
+        }
+    }
+
+    // Custom encoder - sends Date as ISO8601 string to backend
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encodeIfPresent(userId, forKey: .userId)
+        try container.encodeIfPresent(isAnonymous, forKey: .isAnonymous)
+        try container.encode(attackType, forKey: .attackType)
+
+        // Encode Date as ISO8601 string
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        try container.encode(isoFormatter.string(from: incidentDate), forKey: .incidentDate)
+
+        try container.encodeIfPresent(evidenceUrl, forKey: .evidenceUrl)
+        try container.encodeIfPresent(attackOrigin, forKey: .attackOrigin)
+        try container.encodeIfPresent(suspiciousUrl, forKey: .suspiciousUrl)
+        try container.encodeIfPresent(messageContent, forKey: .messageContent)
+        try container.encodeIfPresent(description, forKey: .description)
+        try container.encode(impactLevel, forKey: .impactLevel)
+        try container.encode(status, forKey: .status)
+        try container.encodeIfPresent(adminNotes, forKey: .adminNotes)
+
+        try container.encode(isoFormatter.string(from: createdAt), forKey: .createdAt)
+        if let updatedAt = updatedAt {
+            try container.encode(isoFormatter.string(from: updatedAt), forKey: .updatedAt)
+        }
+    }
 }
 
-// MARK: - Report with Details (same as NormalizedReport for now)
-typealias ReportWithDetails = NormalizedReport
+// MARK: - Report with Details (same as Report)
+typealias ReportWithDetails = Report
 
-// MARK: - Create Report V2 DTO
+// MARK: - Backward Compatibility Aliases
+typealias NormalizedReport = Report // For backward compatibility during transition
+
+// MARK: - Create Report V2 DTO (matches DB TIMESTAMP schema)
 struct CreateReportV2: Codable {
     let userId: Int?
     let isAnonymous: Bool
     let attackType: String
-    let incidentDate: String
-    let incidentTime: String?
+    let incidentDate: Date  // Single Date field (matches DB TIMESTAMP)
     let evidenceUrl: String?
     let attackOrigin: String
     let suspiciousUrl: String?
@@ -516,7 +543,6 @@ struct CreateReportV2: Codable {
         case isAnonymous = "is_anonymous"
         case attackType = "attack_type"
         case incidentDate = "incident_date"
-        case incidentTime = "incident_time"
         case evidenceUrl = "evidence_url"
         case attackOrigin = "attack_origin"
         case suspiciousUrl = "suspicious_url"
@@ -525,21 +551,82 @@ struct CreateReportV2: Codable {
         case impactLevel = "impact_level"
     }
 
-    // Convert from CreateReportRequest
-    static func from(_ legacyRequest: CreateReportRequest, userId: Int?) -> CreateReportV2 {
-        return CreateReportV2(
-            userId: legacyRequest.isAnonymous ? nil : userId,
-            isAnonymous: legacyRequest.isAnonymous,
-            attackType: legacyRequest.attackType,
-            incidentDate: legacyRequest.incidentDate,
-            incidentTime: legacyRequest.incidentTime,
-            evidenceUrl: legacyRequest.evidenceUrl,
-            attackOrigin: legacyRequest.attackOrigin,
-            suspiciousUrl: legacyRequest.suspiciousUrl,
-            messageContent: legacyRequest.messageContent,
-            description: legacyRequest.description,
-            impactLevel: legacyRequest.impactLevel
-        )
+    // Standard init
+    init(userId: Int?, isAnonymous: Bool, attackType: String, incidentDateTime: Date,
+         evidenceUrl: String?, attackOrigin: String, suspiciousUrl: String?,
+         messageContent: String?, description: String?, impactLevel: String) {
+        self.userId = userId
+        self.isAnonymous = isAnonymous
+        self.attackType = attackType
+        self.incidentDate = incidentDateTime
+        self.evidenceUrl = evidenceUrl
+        self.attackOrigin = attackOrigin
+        self.suspiciousUrl = suspiciousUrl
+        self.messageContent = messageContent
+        self.description = description
+        self.impactLevel = impactLevel
+    }
+
+    // Custom decoder - handles Date/ISO8601 string from backend
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        userId = try container.decodeIfPresent(Int.self, forKey: .userId)
+        isAnonymous = try container.decode(Bool.self, forKey: .isAnonymous)
+        attackType = try container.decode(String.self, forKey: .attackType)
+
+        // Try to decode as ISO8601 string first, then fall back to Date
+        if let dateString = try? container.decode(String.self, forKey: .incidentDate) {
+            let isoFormatter = ISO8601DateFormatter()
+            isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = isoFormatter.date(from: dateString) {
+                incidentDate = date
+            } else {
+                // Try without fractional seconds
+                isoFormatter.formatOptions = [.withInternetDateTime]
+                if let date = isoFormatter.date(from: dateString) {
+                    incidentDate = date
+                } else {
+                    throw DecodingError.dataCorrupted(DecodingError.Context(
+                        codingPath: decoder.codingPath,
+                        debugDescription: "Invalid incident date format: \(dateString)"
+                    ))
+                }
+            }
+        } else if let date = try? container.decode(Date.self, forKey: .incidentDate) {
+            incidentDate = date
+        } else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(
+                codingPath: decoder.codingPath,
+                debugDescription: "Could not decode incident_date"
+            ))
+        }
+
+        evidenceUrl = try container.decodeIfPresent(String.self, forKey: .evidenceUrl)
+        attackOrigin = try container.decode(String.self, forKey: .attackOrigin)
+        suspiciousUrl = try container.decodeIfPresent(String.self, forKey: .suspiciousUrl)
+        messageContent = try container.decodeIfPresent(String.self, forKey: .messageContent)
+        description = try container.decodeIfPresent(String.self, forKey: .description)
+        impactLevel = try container.decode(String.self, forKey: .impactLevel)
+    }
+
+    // Custom encoder - sends Date as ISO8601 string to backend
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        // DO NOT encode userId - backend extracts it from auth token
+        try container.encode(isAnonymous, forKey: .isAnonymous)
+        try container.encode(attackType, forKey: .attackType)
+
+        // Encode Date as ISO8601 string
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        try container.encode(isoFormatter.string(from: incidentDate), forKey: .incidentDate)
+
+        try container.encodeIfPresent(evidenceUrl, forKey: .evidenceUrl)
+        try container.encode(attackOrigin, forKey: .attackOrigin)
+        try container.encodeIfPresent(suspiciousUrl, forKey: .suspiciousUrl)
+        try container.encodeIfPresent(messageContent, forKey: .messageContent)
+        try container.encodeIfPresent(description, forKey: .description)
+        try container.encode(impactLevel, forKey: .impactLevel)
     }
 }
 

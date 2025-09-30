@@ -226,13 +226,12 @@ extension ReportingService {
     }
 
     /**
-     * Submit a report with string-based catalog values (simplified)
+     * Submit a report with Date-based incident time (matches DB schema)
      */
-    func submitReportWithStringValues(
+    func submitReportWithDateTime(
         attackType: String,
         impactLevel: String,
-        incidentDate: String,
-        incidentTime: String?,
+        incidentDateTime: Date,
         description: String?,
         evidenceUrl: String? = nil,
         attackOrigin: String,
@@ -240,14 +239,13 @@ extension ReportingService {
         messageContent: String? = nil,
         isAnonymous: Bool = false,
         userId: Int? = nil
-    ) async throws -> NormalizedReport {
+    ) async throws -> Report {
 
         let report = CreateReportV2(
             userId: isAnonymous ? nil : userId,
             isAnonymous: isAnonymous,
             attackType: attackType,
-            incidentDate: incidentDate,
-            incidentTime: incidentTime,
+            incidentDateTime: incidentDateTime,
             evidenceUrl: evidenceUrl,
             attackOrigin: attackOrigin,
             suspiciousUrl: suspiciousUrl,
@@ -264,6 +262,7 @@ extension ReportingService {
      */
     func getReportsWithDetails() async throws -> [ReportWithDetails] {
         let response = try await apiService.getReportsWithDetails()
+        // ReportWithDetails is now just an alias for Report
         return response.data
     }
 
@@ -272,6 +271,7 @@ extension ReportingService {
      */
     func getUserReportsWithDetails() async throws -> [ReportWithDetails] {
         let response = try await apiService.getUserReports()
+        // ReportWithDetails is now just an alias for Report
         return response.data
     }
 
@@ -285,10 +285,15 @@ extension ReportingService {
     /**
      * Convert legacy report request to V2 format and submit
      */
-    func submitLegacyReportAsV2(_ request: CreateReportRequest, userId: Int?) async throws -> NormalizedReport {
-        // Simplified for string-based API
-        let v2Report = CreateReportV2.from(request, userId: userId)
-        return try await submitReportV2(v2Report)
+    func submitLegacyReportAsV2(_ request: CreateReportRequest, userId: Int?) async throws -> Report {
+        // Ensure catalogs are loaded
+        await catalogService.ensureCatalogsLoaded()
+
+        guard let catalogData = await catalogService.catalogData else {
+            throw APIError.catalogLoadFailed
+        }
+
+        return try await apiService.createReportLegacy(request, catalogData: catalogData, userId: userId)
     }
 }
 

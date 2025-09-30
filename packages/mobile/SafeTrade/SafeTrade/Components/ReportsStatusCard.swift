@@ -186,32 +186,32 @@ class ReportStats {
         // With data
         ReportsStatusCard(reports: [
             Report(
-                id: 1, userId: 1, attackType: "email", incidentDate: "2024-01-15",
-                incidentTime: "10:30", attackOrigin: "test@example.com",
-                suspiciousUrl: nil, messageContent: nil, impactLevel: "ninguno",
-                description: "Test report", isAnonymous: false, status: "nuevo",
-                createdAt: Date(), updatedAt: Date()
+                id: 1, userId: 1, isAnonymous: false, attackType: "email",
+                incidentDate: Date().addingTimeInterval(-86400 * 7), // 7 days ago
+                evidenceUrl: nil, attackOrigin: "test@example.com",
+                suspiciousUrl: nil, messageContent: nil, description: "Test report", impactLevel: "ninguno",
+                status: "nuevo", adminNotes: nil, createdAt: Date(), updatedAt: Date()
             ),
             Report(
-                id: 2, userId: 1, attackType: "SMS", incidentDate: "2024-01-16",
-                incidentTime: "15:45", attackOrigin: "+1234567890",
-                suspiciousUrl: nil, messageContent: nil, impactLevel: "robo_datos",
-                description: "Another test", isAnonymous: false, status: "revisado",
-                createdAt: Date(), updatedAt: Date()
+                id: 2, userId: 1, isAnonymous: false, attackType: "SMS",
+                incidentDate: Date().addingTimeInterval(-86400 * 5), // 5 days ago
+                evidenceUrl: nil, attackOrigin: "+1234567890",
+                suspiciousUrl: nil, messageContent: nil, description: "Another test", impactLevel: "robo_datos",
+                status: "revisado", adminNotes: nil, createdAt: Date(), updatedAt: Date()
             ),
             Report(
-                id: 3, userId: 1, attackType: "redes_sociales", incidentDate: "2024-01-17",
-                incidentTime: "09:15", attackOrigin: "suspicious-site.com",
-                suspiciousUrl: nil, messageContent: nil, impactLevel: "robo_dinero",
-                description: "Test en investigación", isAnonymous: false, status: "en_investigacion",
-                createdAt: Date(), updatedAt: Date()
+                id: 3, userId: 1, isAnonymous: false, attackType: "redes_sociales",
+                incidentDate: Date().addingTimeInterval(-86400 * 3), // 3 days ago
+                evidenceUrl: nil, attackOrigin: "suspicious-site.com",
+                suspiciousUrl: nil, messageContent: nil, description: "Test en investigación", impactLevel: "robo_dinero",
+                status: "en_investigacion", adminNotes: nil, createdAt: Date(), updatedAt: Date()
             ),
             Report(
-                id: 4, userId: 1, attackType: "llamada", incidentDate: "2024-01-18",
-                incidentTime: "14:30", attackOrigin: "+9876543210",
-                suspiciousUrl: nil, messageContent: nil, impactLevel: "cuenta_comprometida",
-                description: "Test cerrado", isAnonymous: false, status: "cerrado",
-                createdAt: Date(), updatedAt: Date()
+                id: 4, userId: 1, isAnonymous: false, attackType: "llamada",
+                incidentDate: Date().addingTimeInterval(-86400), // 1 day ago
+                evidenceUrl: nil, attackOrigin: "+9876543210",
+                suspiciousUrl: nil, messageContent: nil, description: "Test cerrado", impactLevel: "cuenta_comprometida",
+                status: "cerrado", adminNotes: nil, createdAt: Date(), updatedAt: Date()
             )
         ], isLoading: false)
     }

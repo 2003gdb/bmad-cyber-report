@@ -10,12 +10,16 @@ class ReportingViewModel: ObservableObject {
     @Published var isAnonymous: Bool = true
     @Published var selectedAttackTypeId: Int?
     @Published var selectedImpactId: Int?
-    @Published var incidentDate = Date()
-    @Published var incidentTime: String = ""
+    @Published var incidentDate = Date() // Combined date+time (matches DB TIMESTAMP)
     @Published var attackOrigin: String = ""
     @Published var suspiciousUrl: String = ""
     @Published var messageContent: String = ""
     @Published var description: String = ""
+
+    // Photo upload
+    @Published var selectedPhoto: UIImage?
+    @Published var uploadedPhotoUrl: String?
+    @Published var isUploadingPhoto: Bool = false
 
     // UI State
     @Published var isSubmitting: Bool = false
@@ -161,12 +165,14 @@ class ReportingViewModel: ObservableObject {
         // Note: isAnonymous is not reset as it's set during initialization
         selectedAttackTypeId = nil
         selectedImpactId = nil
-        incidentDate = Date()
-        incidentTime = ""
+        incidentDate = Date() // Reset to current date/time
         attackOrigin = ""
         suspiciousUrl = ""
         messageContent = ""
         description = ""
+        selectedPhoto = nil
+        uploadedPhotoUrl = nil
+        isUploadingPhoto = false
         showValidationErrors = false
         recommendations = []
         victimSupport = nil
@@ -177,6 +183,34 @@ class ReportingViewModel: ObservableObject {
         if catalogData != nil {
             applySmartDefaults()
         }
+    }
+
+    // MARK: - Photo Upload
+
+    func uploadPhoto() async throws {
+        guard let photo = selectedPhoto else { return }
+
+        isUploadingPhoto = true
+
+        do {
+            let apiService = APIService.shared
+            let url = try await apiService.uploadPhoto(image: photo)
+
+            await MainActor.run {
+                self.uploadedPhotoUrl = url
+                self.isUploadingPhoto = false
+            }
+        } catch {
+            await MainActor.run {
+                self.isUploadingPhoto = false
+            }
+            throw error
+        }
+    }
+
+    func removePhoto() {
+        selectedPhoto = nil
+        uploadedPhotoUrl = nil
     }
 
     // MARK: - Report Submission
@@ -211,20 +245,19 @@ class ReportingViewModel: ObservableObject {
 
         Task {
             do {
+                // Upload photo first if one was selected
+                if selectedPhoto != nil && uploadedPhotoUrl == nil {
+                    try await uploadPhoto()
+                }
+
                 let userId = isAnonymous ? nil : authService.currentUser?.id
 
-                // Format date as string
-                let dateFormatter = DateFormatter()
-                dateFormatter.dateFormat = "yyyy-MM-dd"
-                let dateString = dateFormatter.string(from: incidentDate)
-
-                let report = try await reportingService.submitReportWithStringValues(
+                let report = try await reportingService.submitReportWithDateTime(
                     attackType: attackTypeString,
                     impactLevel: impactString,
-                    incidentDate: dateString,
-                    incidentTime: incidentTime.isEmpty ? nil : incidentTime,
+                    incidentDateTime: incidentDate,
                     description: description.isEmpty ? nil : description,
-                    evidenceUrl: suspiciousUrl.isEmpty ? nil : suspiciousUrl,
+                    evidenceUrl: uploadedPhotoUrl, // Photo URL from upload
                     attackOrigin: attackOrigin.trimmingCharacters(in: .whitespacesAndNewlines),
                     suspiciousUrl: suspiciousUrl.isEmpty ? nil : suspiciousUrl,
                     messageContent: messageContent.isEmpty ? nil : messageContent,
@@ -376,7 +409,6 @@ class ReportingViewModel: ObservableObject {
 
         // Auto-populate current date and time
         incidentDate = Date()
-        incidentTime = getCurrentTimeString()
 
         // Set most common attack type as default (email is most common)
         selectedAttackTypeId = getMostCommonAttackTypeId()

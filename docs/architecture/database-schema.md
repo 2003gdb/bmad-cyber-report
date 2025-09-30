@@ -62,7 +62,7 @@ CREATE TABLE reports (
     attack_origin VARCHAR(255) NULL, -- Phone number or email of attacker
 
     -- Evidence and content
-    evidence_url TEXT NULL, -- URL to evidence files/screenshots
+    evidence_url TEXT NULL, -- URL to evidence files/photos
     suspicious_url TEXT NULL, -- Malicious URL related to attack
     message_content TEXT NULL, -- Original attack message
     description TEXT NULL, -- Free-text description

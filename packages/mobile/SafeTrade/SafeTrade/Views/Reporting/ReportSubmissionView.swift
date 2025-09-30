@@ -6,6 +6,9 @@ struct ReportSubmissionView: View {
     @Environment(\.presentationMode) var presentationMode
     @Environment(\.dismiss) private var dismiss
 
+    @State private var showingImagePicker = false
+    @State private var imageSourceType: UIImagePickerController.SourceType = .photoLibrary
+
     init(isAnonymous: Bool = false) {
         self.isAnonymous = isAnonymous
         self._viewModel = StateObject(wrappedValue: ReportingViewModel(isAnonymous: isAnonymous))
@@ -35,6 +38,9 @@ struct ReportSubmissionView: View {
 
                     // Incident Description (moved to bottom)
                     incidentDescriptionSection
+
+                    // Photo Evidence Section
+                    photoEvidenceSection
 
                     // Submit Button
                     submitButton
@@ -278,35 +284,18 @@ struct ReportSubmissionView: View {
                 .font(.headline)
                 .foregroundColor(DesignSystem.Colors.textPrimary)
 
-            // Date and Time in same row
-            HStack(spacing: DesignSystem.Spacing.lg) {
-                // Date Picker
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-                    Text("Fecha del Incidente")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(DesignSystem.Colors.textPrimary)
+            // Date and Time Picker (Combined)
+            VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
+                Text("Fecha y Hora del Incidente")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(DesignSystem.Colors.textPrimary)
 
-                    DatePicker("", selection: $viewModel.incidentDate, displayedComponents: .date)
-                        .datePickerStyle(CompactDatePickerStyle())
-                        .padding(DesignSystem.Spacing.md)
-                        .background(Color.white)
-                        .cornerRadius(8)
-                }
-                .frame(maxWidth: .infinity)
-
-                // Time Input (Optional)
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-                    Text("Hora (Opcional)")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(DesignSystem.Colors.textPrimary)
-
-                    TextField("HH:MM", text: $viewModel.incidentTime)
-                        .bmadInputField()
-                        .keyboardType(.numbersAndPunctuation)
-                }
-                .frame(maxWidth: .infinity)
+                DatePicker("", selection: $viewModel.incidentDate, displayedComponents: [.date, .hourAndMinute])
+                    .datePickerStyle(CompactDatePickerStyle())
+                    .padding(DesignSystem.Spacing.md)
+                    .background(Color.white)
+                    .cornerRadius(8)
             }
         }
         .bmadCard()
@@ -434,6 +423,100 @@ struct ReportSubmissionView: View {
         }
     }
 
+
+    // MARK: - Photo Evidence Section
+
+    private var photoEvidenceSection: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.md) {
+            Text("Evidencia Fotográfica (Opcional)")
+                .font(.headline)
+                .foregroundColor(DesignSystem.Colors.textPrimary)
+
+            if let photo = viewModel.selectedPhoto {
+                // Show selected photo
+                VStack(spacing: DesignSystem.Spacing.sm) {
+                    Image(uiImage: photo)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 200)
+                        .cornerRadius(8)
+
+                    HStack {
+                        if viewModel.isUploadingPhoto {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text("Subiendo foto...")
+                                .font(.caption)
+                                .foregroundColor(DesignSystem.Colors.textSecondary)
+                        } else if viewModel.uploadedPhotoUrl != nil {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text("Foto lista para enviar")
+                                .font(.caption)
+                                .foregroundColor(DesignSystem.Colors.textSecondary)
+                        }
+
+                        Spacer()
+
+                        Button(action: {
+                            viewModel.removePhoto()
+                        }) {
+                            HStack {
+                                Image(systemName: "trash")
+                                Text("Eliminar")
+                            }
+                            .font(.caption)
+                            .foregroundColor(.red)
+                        }
+                    }
+                    .padding(.horizontal, DesignSystem.Spacing.sm)
+                }
+            } else {
+                // Show upload buttons
+                HStack(spacing: DesignSystem.Spacing.md) {
+                    Button(action: {
+                        imageSourceType = .camera
+                        showingImagePicker = true
+                    }) {
+                        VStack {
+                            Image(systemName: "camera.fill")
+                                .font(.title2)
+                            Text("Cámara")
+                                .font(.caption)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(8)
+                    }
+                    .foregroundColor(DesignSystem.Colors.safetradeOrange)
+
+                    Button(action: {
+                        imageSourceType = .photoLibrary
+                        showingImagePicker = true
+                    }) {
+                        VStack {
+                            Image(systemName: "photo.fill")
+                                .font(.title2)
+                            Text("Galería")
+                                .font(.caption)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(8)
+                    }
+                    .foregroundColor(DesignSystem.Colors.safetradeOrange)
+                }
+            }
+        }
+        .bmadCard()
+        .sheet(isPresented: $showingImagePicker) {
+            ImagePicker(sourceType: imageSourceType) { image in
+                viewModel.selectedPhoto = image
+            }
+        }
+    }
 
     // MARK: - Submit Button
 

@@ -3,12 +3,17 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { EnvValidationService } from './common/config/env-validation.service';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import 'dotenv/config';
 
 async function bootstrap() {
   // Validate required environment variables before starting the app
   EnvValidationService.validateRequiredEnvVars();
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Serve static files from public directory
+  app.useStaticAssets(join(__dirname, '..', 'public'));
   
   // Enable CORS with specific origins (no wildcard in production)
   const corsOrigins = process.env.NODE_ENV === 'production'
